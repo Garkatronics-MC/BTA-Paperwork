@@ -15,7 +15,12 @@ import deus.paperwork.entities.base.ContainerMob;
 import deus.paperwork.entities.employee.enums.EmployeeAlert;
 import deus.paperwork.entities.employee.enums.EmployeeEmotions;
 import deus.paperwork.entities.employee.enums.EmployeeStateIcons;
+import deus.paperwork.interfaces.ICustomizable;
 import deus.paperwork.interfaces.WithAI;
+import deus.paperwork.uniforms.HairPiece;
+import deus.paperwork.uniforms.HairStyle;
+import deus.paperwork.uniforms.UniformPiece;
+import deus.paperwork.uniforms.UniformShape;
 import deus.paperwork.util.PoscArea;
 import deus.paperwork.util.RenderUtils;
 import deus.utils.annotations.RegisterEntity;
@@ -40,14 +45,25 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.primitives.AABBd;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @RegisterEntityRenderer(renderer = MobEmployeeRenderer.class)
 @RegisterEntity(id = "employee", name = "employee")
-public class MobEmployee extends MobPathfinder implements IItemHolding {
+public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomizable {
+
+	private static final HashMap<String, Integer> skinToHairColor = new HashMap<>();
+
+	static {
+		skinToHairColor.put("0", 0xeb983f);
+		skinToHairColor.put("1", 0xffc752);
+		skinToHairColor.put("2", 0x24983f);
+		skinToHairColor.put("3", 0xde81b0);
+		skinToHairColor.put("4", 0xa95520);
+		skinToHairColor.put("5", 0x2ea2ba);
+		skinToHairColor.put("6", 0x36332f);
+		skinToHairColor.put("7", 0x040405);
+		skinToHairColor.put("8", 0x332411);
+	}
 
 	private static final double HUNGER_RATE = 0.0002;
 	private static final double FATIGUE_RATE = 0.0001;
@@ -57,6 +73,8 @@ public class MobEmployee extends MobPathfinder implements IItemHolding {
 	public Optional<TilePosc> bed_position = Optional.empty();
 	public Optional<PoscArea.Area2D> food_place = Optional.empty();
 
+	private final Map<UniformShape, UniformPiece> uniformPieces = new EnumMap<>(UniformShape.class);
+	private HairPiece hairPiece = null;
 
 	public double hunger = 0.8;
 	public double fatigue = 0.1;
@@ -65,12 +83,11 @@ public class MobEmployee extends MobPathfinder implements IItemHolding {
 	public double social = 0.8;
 	public double health = 1.0;
 
-	private double traitSocial;
-	private double traitBrave;
-	private double traitHardworking;
-	private double traitLazy;
+	private final double traitSocial;
+	private final double traitBrave;
+	private final double traitHardworking;
+	private final double traitLazy;
 
-	public boolean isWoman = false;
 
 	public EmployeeAlert currentAlert = EmployeeAlert.NO_FOOD_PLACE;
 	public EmployeeStateIcons currentLowState = EmployeeStateIcons.ASLEEP;
@@ -89,8 +106,16 @@ public class MobEmployee extends MobPathfinder implements IItemHolding {
 		super(world);
 		this.setTextureIdentifier("paperwork", "employee");
 
-		Random r = new Random();
-		isWoman = r.nextInt(2) == 1;
+		HairStyle[] styles = Arrays.stream(HairStyle.values())
+			.filter(s -> s != HairStyle.NONE)
+			.toArray(HairStyle[]::new);
+		HairStyle randomStyle = styles[random.nextInt(styles.length)];
+
+		hairPiece = new HairPiece(randomStyle, 0, skinToHairColor.get(this.getTextureReference()));
+
+		uniformPieces.put(UniformShape.SHIRT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
+		uniformPieces.put(UniformShape.HAT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
+		uniformPieces.put(UniformShape.PANTS, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
 
 		this.inventory = new ContainerMob("employee_inventory", 9);
 
@@ -400,4 +425,27 @@ public class MobEmployee extends MobPathfinder implements IItemHolding {
 	public boolean isLeftHanded() {
 		return false;
 	}
+
+
+	@Override
+	public @Nullable UniformPiece getUniformPiece(@NotNull UniformShape slot) {
+		return uniformPieces.get(slot);
+	}
+
+	@Override
+	public void setUniformPiece(@NotNull UniformShape slot, @Nullable UniformPiece piece) {
+		if (piece == null) uniformPieces.remove(slot);
+		else uniformPieces.put(slot, piece);
+	}
+
+	@Override
+	public @NotNull HairPiece getHairPiece() {
+		return hairPiece;
+	}
+
+	@Override
+	public void setHairPiece(@NotNull HairPiece piece) {
+		this.hairPiece = piece;
+	}
+
 }

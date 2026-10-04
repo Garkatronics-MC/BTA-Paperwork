@@ -6,10 +6,14 @@
     "/assets/paperwork/models/entity/cardboard_box.geo.json",
     "/assets/paperwork/models/entity/gift_box.geo.json",
     "/assets/paperwork/models/entity/office_chair.geo.json",
-    "/assets/paperwork/models/entity/employee.geo.json",
-    "/assets/paperwork/models/entity/employee_woman.geo.json",
-    "/assets/paperwork/models/entity/employee_farmer.geo.json",
-    "/assets/paperwork/models/entity/employee_woman_farmer.geo.json"
+
+    "/assets/paperwork/models/entity/employee/employee.geo.json",
+    "/assets/paperwork/models/entity/employee/uniform.geo.json",
+
+    "/assets/paperwork/models/entity/employee/hairstyles/head_hair.geo.json",
+    "/assets/paperwork/models/entity/employee/hairstyles/ponytail.geo.json",
+
+    "/assets/paperwork/models/entity/employee/accessories/farmer_bag.geo.json"
   ],
   "custom_player_models": {},
   "renderers": {
@@ -32,12 +36,23 @@
       "main": "geometry.paperwork.office_chair"
     },
     "paperwork:employee": {
-      "man": "geometry.paperwork.employee",
-      "woman": "geometry.paperwork.employee_woman"
+      "main": "geometry.paperwork.employee",
+      "uniform": "geometry.paperwork.uniform",
+
+      "head_hair": "geometry.paperwork.hairstyles.head_hair",
+      "hair_ponytail": "geometry.paperwork.hairstyles.ponytail",
+
+      "farmer_bag": "geometry.paperwork.accessories.farmer_bag"
     },
+
     "paperwork:employee_farmer": {
-      "man": "geometry.paperwork.employee_farmer",
-      "woman": "geometry.paperwork.employee_woman_farmer"
+      "main": "geometry.paperwork.employee",
+      "uniform": "geometry.paperwork.uniform",
+
+      "head_hair": "geometry.paperwork.hairstyles.head_hair",
+      "hair_ponytail": "geometry.paperwork.hairstyles.ponytail",
+
+      "farmer_bag": "geometry.paperwork.accessories.farmer_bag"
     }
   }
 }

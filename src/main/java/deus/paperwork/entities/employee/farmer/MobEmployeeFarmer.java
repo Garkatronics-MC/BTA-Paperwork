@@ -29,8 +29,7 @@ public class MobEmployeeFarmer extends MobEmployee  {
 
 	public MobEmployeeFarmer(@NotNull World world) {
 		super(world, new AIHolder<>(Brains.EmployeeFarmerAI.get()));
-		this.setTextureIdentifier("paperwork", "employee_farmer");
-
+		//this.setTextureIdentifier("paperwork", "employee_farmer");
 	}
 
 	@Override

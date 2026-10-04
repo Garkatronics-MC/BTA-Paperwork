@@ -21,7 +21,7 @@ public class PaperPlaneRenderer extends EntityRendererDefault<EntityPaperPlane> 
 		String currentTexture = DEFAULT_TEXTURE;
 		DyeColor color = entity.getColor();
 		if (color != null) {
-			currentTexture = "/assets/paperwork/textures/entity/paperplane/" + entity.getColor().colorID + ".png";
+			currentTexture = "/assets/paperwork/textures/entity/paperplane/" + entity.getColor().colorID + "1.png";
 		}
 
 		this.bindTexture(currentTexture);

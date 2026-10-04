@@ -19,7 +19,7 @@ public class RendererCardboardBox extends EntityRendererDefault<EntityCardboardB
 				? "/assets/paperwork/textures/entity/cardboard_box/halloween/pumpkin.png"
 				: "/assets/paperwork/textures/entity/cardboard_box/texture.png");
 		} else {
-			bindTexture("/assets/paperwork/textures/entity/cardboard_box/gift_box/" + color.colorID + ".png");
+			bindTexture("/assets/paperwork/textures/entity/cardboard_box/gift_box/" + color.colorID + "1.png");
 		}
 	}
 

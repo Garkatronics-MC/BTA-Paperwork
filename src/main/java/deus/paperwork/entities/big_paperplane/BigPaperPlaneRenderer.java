@@ -24,7 +24,7 @@
 //		String currentTexture = DEFAULT_TEXTURE;
 //		DyeColor color = entityBigPaperPlane.getColor();
 //		if (color!=null) {
-//			currentTexture = "/assets/paperwork/textures/entity/paperplane/" + entityBigPaperPlane.getColor().colorID + ".png";
+//			currentTexture = "/assets/paperwork/textures/entity/paperplane/" + entityBigPaperPlane.getColor().colorID + "1.png";
 //		}
 //		this.bindTexture(currentTexture);
 //

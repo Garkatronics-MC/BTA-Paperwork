@@ -21,7 +21,7 @@ public abstract class TexturedEntity extends Entity {
 
 	public String getEntityTexture() {
 		String basePath = String.format("/assets/%s/textures/entity/%s/", this.textureIdentifier.namespace(), this.textureIdentifier.value());
-		return basePath + this.getTextureReference() + ".png";
+		return basePath + this.getTextureReference() + "1.png";
 	}
 
 	public String getTextureReference() {
