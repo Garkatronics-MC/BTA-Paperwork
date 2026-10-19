@@ -51,6 +51,13 @@ public interface EmployeeJob {
 	/// Job specific recharge; applied AFTER the base one (food/rest).
 	void recharge(MobEmployee mob, EmployeeStats stats);
 
+	/// What the employee does with the world because of its profession. It runs
+	/// on the server, every tick.
+	///
+	/// The farmer gathers what is around it here; the plain employee has
+	/// nothing to do.
+	void work(MobEmployee mob);
+
 	/// Alert to show when the job's own station is missing; empty if the job has none.
 	Optional<EmployeeAlert> missingStationAlert(MobEmployee mob);
 

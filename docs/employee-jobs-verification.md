@@ -1,6 +1,6 @@
 # Verificación manual — Oficios de empleados como strategies
 
-**Verificado automáticamente:** `./gradlew test` → 78 tests, 0 fallos
+**Verificado automáticamente:** `./gradlew test` → 85 tests, 0 fallos
 
 > Plan de comprobación a mano de lo que no se puede automatizar sin el arranque de Minecraft.
 > Lo automático (tests JUnit) vive en `src/test/java` y lo corre el CI: `./gradlew test`.
@@ -45,6 +45,17 @@
 | 2.4 | 64 trigo | dale 64 trigo | se ven `wheat1`, `wheat2` y `wheat3` | ☐ |
 | 2.5 | el inventario se ve | el empleado lleva trigo | el cliente ve el trigo (antes el inventario del cliente estaba siempre vacío) | ☐ |
 | 2.6 | el inventario sobrevive | recarga el mundo | el empleado conserva sus semillas/trigo (NBT) | ☐ |
+
+## 2 bis. Lo que el farmer recoge
+
+| # | Caso | Pasos | Resultado esperado | OK |
+|---|---|---|---|---|
+| 2b.1 | recoge del suelo | tira trigo y semillas junto al farmer | los coge (a los ~0,5 s, que es cuando caduca el retraso de recogida) | ☐ |
+| 2b.2 | recoge lo que ha cosechado | deja madurar un cultivo y deja que el farmer lo coseche | el trigo **no** se queda en el suelo: acaba en su inventario y se ve en la bolsa | ☐ |
+| 2b.3 | coge semillas de un cofre | pon semillas en un cofre junto al farmer | las coge del cofre y las lleva al sembrado | ☐ |
+| 2b.4 | no roba sin necesidad | deja semillas en el cofre y dale al farmer semillas ya | **no** coge más semillas del cofre (el inventario es pequeño) | ☐ |
+| 2b.5 | el cofre conserva el resto | pon 30 semillas y dale 16 | el cofre se queda con 14 | ☐ |
+| 2b.6 | el plain no recoge | un empleado normal con trigo en los pies | **no** lo coge: solo lo hace su oficio | ☐ |
 
 ## 3. HUD (se pintaba en ningún lado)
 

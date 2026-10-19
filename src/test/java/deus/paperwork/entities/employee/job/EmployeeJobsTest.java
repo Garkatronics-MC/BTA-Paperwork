@@ -111,6 +111,9 @@ class EmployeeJobsTest {
 		}
 
 		@Override
+		public void work(MobEmployee mob) {}
+
+		@Override
 		public Agent buildAgent(MobEmployee mob, EmployeeTraits traits, EmployeeStats stats, EmployeeStations stations) {
 			throw new UnsupportedOperationException("not needed for the registry");
 		}
