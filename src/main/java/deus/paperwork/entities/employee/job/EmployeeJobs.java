@@ -58,6 +58,11 @@ public final class EmployeeJobs {
 	}
 
 	/// Every registered job, in registration order.
+	///
+	/// It is only used by the tests, and it stays: a registry without an
+	/// enumeration is lame, and the test of models.json uses it to protect
+	/// the contract of the variants of EVERY registered job (the ones of
+	/// today and the ones that come).
 	public static Collection<EmployeeJob> all() {
 		return List.copyOf(REGISTRY.values());
 	}

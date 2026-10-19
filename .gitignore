@@ -6,5 +6,7 @@ build/
 out/
 run/
 run-server/
+# The spec does not ask for these two, but they stay: logs/latest.log slipped
+# into a commit once and blocked a merge, and .codegraph/ is a local index.
 logs/
 .codegraph/

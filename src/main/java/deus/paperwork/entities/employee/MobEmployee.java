@@ -76,10 +76,6 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	private static final int DATA_PROGRESS        = 8;
 	private static final int DATA_INVENTORY_START = 9;
 
-	/// The work progress travels as a short: SynchedEntityData has no float getter.
-	/// The value is the progress multiplied by this scale (1000 = 1.0).
-	private static final float PROGRESS_SCALE = 1000f;
-
 	/// The number of slots of the inventory of an employee.
 	public static final int INVENTORY_SIZE = 9;
 
@@ -317,14 +313,20 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 
 	/// The brain tick: server only. The client never runs the AI, it only
 	/// draws what the server publishes (see onLivingUpdate).
+	///
+	/// The order matters and it is the one of the old farmer: the base
+	/// recharge (food/rest), then the brain tick, and the recharge of the job
+	/// AFTER the brain. The planner has to see the same work drive it saw
+	/// before the refactor, so the job recharge cannot be added before the
+	/// brain evaluates it.
 	@Override
 	protected void updateAI() {
 		if (this.world.isClientSide) {
 			return;
 		}
-		rechargeAtStations();
-		job().recharge(this, stats());   // the recharge of the job, after the base one
-		super.updateAI();
+		rechargeAtStations();            // the base one (food/rest)
+		super.updateAI();                // the brain
+		job().recharge(this, stats());   // the one of the job, AFTER the brain
 		publishHudState();
 		syncInventory();
 	}
@@ -332,7 +334,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// Mirrors the old passive drain: standing at a station slowly pays the
 	/// matching deficit. The one-shot bite/sleep is handled by the tasks; this
 	/// is what makes the {@code rest} plan terminate off-shift. The recharge of
-	/// the job is added on top of this one (see updateAI).
+	/// the job is added on top of this one, after the brain tick (see updateAI).
 	protected void rechargeAtStations() {
 		if (food_place.isPresent() && near(food_place.get().center(), STATION_NEAR_RANGE)) {
 			stats.eat(NEAR_FOOD_RELIEF);
@@ -369,7 +371,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// synched data. The HUD values are not persisted: they are recomputed
 	/// every tick.
 	private void publishHudState() {
-		EmployeeHudState hud = EmployeeHudState.compute(new EmployeeHudState.Input(
+		EmployeeHudState hud = EmployeeHudState.compute(new EmployeeHudState.Conditions(
 			food_place.isPresent(),
 			bed_position.isPresent(),
 			job().missingStationAlert(this).orElse(null),
@@ -382,7 +384,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 		this.entityData.set(DATA_ALERT, (byte) hud.alert().ordinal());
 		this.entityData.set(DATA_STATE, (byte) hud.state().ordinal());
 		this.entityData.set(DATA_EMOTION, (byte) hud.emotion().ordinal());
-		this.entityData.set(DATA_PROGRESS, (short) Math.round(hud.progress() * PROGRESS_SCALE));
+		this.entityData.set(DATA_PROGRESS, (short) Math.round(hud.progress() * EmployeeHudState.PROGRESS_SCALE));
 
 		currentAlert = hud.alert();
 		currentLowState = hud.state();
@@ -391,33 +393,17 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 
 	/// Reads the HUD state published by the server and paints it (client only).
 	private void paintHud() {
-		currentAlert = alertFromData(this.entityData.getByte(DATA_ALERT));
-		currentLowState = stateFromData(this.entityData.getByte(DATA_STATE));
-		currentEmotion = emotionFromData(this.entityData.getByte(DATA_EMOTION));
-		float progress = this.entityData.getShort(DATA_PROGRESS) / PROGRESS_SCALE;
-		progress = Math.min(1f, Math.max(0f, progress));
-		ClientHud.paint(this, currentAlert, currentLowState, currentEmotion, progress);
-	}
+		EmployeeHudState hud = EmployeeHudState.fromOrdinals(
+			this.entityData.getByte(DATA_ALERT),
+			this.entityData.getByte(DATA_STATE),
+			this.entityData.getByte(DATA_EMOTION),
+			this.entityData.getShort(DATA_PROGRESS)
+		);
 
-	/// The alert of the synced data. A value out of range means GOOD.
-	static EmployeeAlert alertFromData(byte raw) {
-		EmployeeAlert[] values = EmployeeAlert.values();
-		int ordinal = raw & 0xFF;
-		return ordinal < values.length ? values[ordinal] : EmployeeAlert.GOOD;
-	}
-
-	/// The state of the synced data. A value out of range means GOOD.
-	static EmployeeStateIcons stateFromData(byte raw) {
-		EmployeeStateIcons[] values = EmployeeStateIcons.values();
-		int ordinal = raw & 0xFF;
-		return ordinal < values.length ? values[ordinal] : EmployeeStateIcons.GOOD;
-	}
-
-	/// The emotion of the synced data. A value out of range means HAPPY.
-	static EmployeeEmotions emotionFromData(byte raw) {
-		EmployeeEmotions[] values = EmployeeEmotions.values();
-		int ordinal = raw & 0xFF;
-		return ordinal < values.length ? values[ordinal] : EmployeeEmotions.HAPPY;
+		currentAlert = hud.alert();
+		currentLowState = hud.state();
+		currentEmotion = hud.emotion();
+		ClientHud.paint(this, hud);
 	}
 
 	// ------------------------------------------------------------------ inventory
@@ -607,12 +593,12 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 
 		private ClientHud() {}
 
-		static void paint(MobEmployee mob, EmployeeAlert alert, EmployeeStateIcons state, EmployeeEmotions emotion, float progress) {
-			IconCoordinate alertIcon = TextureRegistry.getTexture(alert.path);
-			IconCoordinate stateIcon = TextureRegistry.getTexture(state.path);
-			IconCoordinate emotionIcon = TextureRegistry.getTexture(emotion.path);
+		static void paint(MobEmployee mob, EmployeeHudState hud) {
+			IconCoordinate alertIcon = TextureRegistry.getTexture(hud.alert().path);
+			IconCoordinate stateIcon = TextureRegistry.getTexture(hud.state().path);
+			IconCoordinate emotionIcon = TextureRegistry.getTexture(hud.emotion().path);
 			RenderUtils.setTarget(mob, new RenderUtils.EmployeeRenderData(
-				alertIcon, stateIcon, emotionIcon, progress
+				alertIcon, stateIcon, emotionIcon, hud.progress()
 			));
 		}
 	}

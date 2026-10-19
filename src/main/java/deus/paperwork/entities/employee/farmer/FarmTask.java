@@ -6,7 +6,6 @@ import deus.brainless.task.TaskStatus;
 import deus.paperwork.Paperwork;
 import deus.paperwork.entities.base.CropWorldAccess;
 import deus.paperwork.entities.employee.MobEmployee;
-import deus.paperwork.entities.employee.job.EmployeeJobState;
 import deus.paperwork.util.PoscArea;
 import net.minecraft.core.world.pos.TilePos;
 import net.minecraft.core.world.pos.TilePosc;
@@ -19,8 +18,9 @@ import java.util.Optional;
 /// Succeeds once the farm has nothing left to do; fails when no farm area is set.
 ///
 /// The area is not a field of the mob anymore: it lives in the state of the
-/// job, and the task reads it through the public API of the mob
-/// ({@code mob.jobState()}), so it does not know any concrete farmer class.
+/// job, and the task reads it through the job itself
+/// ({@link FarmerJob#farmArea(MobEmployee)}), so it does not know any concrete
+/// farmer class.
 public class FarmTask implements Task {
 
 	private static final double ACTION_REACH = 1.2;
@@ -110,11 +110,10 @@ public class FarmTask implements Task {
 	}
 
 	/// The plot the farmer works, read from the state of its job.
+	///
+	/// The job knows how to read its own state, so the task does not have to
+	/// know the concrete type of the job state.
 	private Optional<PoscArea.Area2D> farmArea() {
-		EmployeeJobState state = mob.jobState();
-		if (state instanceof FarmerJobState farmerState) {
-			return farmerState.farmArea();
-		}
-		return Optional.empty();
+		return FarmerJob.farmArea(mob);
 	}
 }

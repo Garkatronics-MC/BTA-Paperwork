@@ -22,85 +22,85 @@ import org.jetbrains.annotations.Nullable;
 @RegisterItemModel(model = ItemModelStandard.class)
 public class FarmStick extends Item {
 
-    private TilePosc pointA = null;
-    private TilePosc pointB = null;
+	private TilePosc pointA = null;
+	private TilePosc pointB = null;
 
-    public FarmStick(@NotNull String translationKey, @NotNull String namespaceId, int id) {
-        super(translationKey, namespaceId, id);
-    }
+	public FarmStick(@NotNull String translationKey, @NotNull String namespaceId, int id) {
+		super(translationKey, namespaceId, id);
+	}
 
-    @Override
-    public boolean onUseOnBlock(@NotNull ItemStack selfStack, @NotNull World world,
-                                @Nullable Player player, @NotNull TilePosc blockPos,
-                                @NotNull Side side, double xHit, double yHit) {
-        if (world.isClientSide || player == null) return false;
+	@Override
+	public boolean onUseOnBlock(@NotNull ItemStack selfStack, @NotNull World world,
+								@Nullable Player player, @NotNull TilePosc blockPos,
+								@NotNull Side side, double xHit, double yHit) {
+		if (world.isClientSide || player == null) return false;
 
-        TilePosc pos = new TilePos(blockPos.x(), blockPos.y(), blockPos.z());
+		TilePosc pos = new TilePos(blockPos.x(), blockPos.y(), blockPos.z());
 
-        if (player.isSneaking()) {
-            pointB = pos;
-            Paperwork.LOGGER.info("[FarmStick] Point B set: {}", pos);
-            say(player, TextFormatting.Base.YELLOW, "Farm area: point B set " + fmt(pos) + ".");
-        } else {
-            pointA = pos;
-            pointB = null; // reset B on new A
-            Paperwork.LOGGER.info("[FarmStick] Point A set: {}", pos);
-            say(player, TextFormatting.Base.YELLOW, "Farm area: point A set " + fmt(pos)
-                + " — sneak+click the opposite corner to finish the area.");
-        }
+		if (player.isSneaking()) {
+			pointB = pos;
+			Paperwork.LOGGER.info("[FarmStick] Point B set: {}", pos);
+			say(player, TextFormatting.Base.YELLOW, "Farm area: point B set " + fmt(pos) + ".");
+		} else {
+			pointA = pos;
+			pointB = null; // reset B on new A
+			Paperwork.LOGGER.info("[FarmStick] Point A set: {}", pos);
+			say(player, TextFormatting.Base.YELLOW, "Farm area: point A set " + fmt(pos)
+				+ " — sneak+click the opposite corner to finish the area.");
+		}
 
-        if (pointA != null && pointB != null) {
-            Paperwork.LOGGER.info("[FarmStick] Area ready: {} -> {}", pointA, pointB);
-            say(player, TextFormatting.Base.GREEN, "Farm area ready — right-click a farmer to assign it.");
-        }
+		if (pointA != null && pointB != null) {
+			Paperwork.LOGGER.info("[FarmStick] Area ready: {} -> {}", pointA, pointB);
+			say(player, TextFormatting.Base.GREEN, "Farm area ready — right-click a farmer to assign it.");
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    @Override
-    public boolean useOnEntity(@NotNull ItemStack selfStack, @NotNull Player player, @NotNull Mob mob) {
-        if (!(mob instanceof MobEmployee employee)) return false;
+	@Override
+	public boolean useOnEntity(@NotNull ItemStack selfStack, @NotNull Player player, @NotNull Mob mob) {
+		if (!(mob instanceof MobEmployee employee)) return false;
 
-        if (pointA == null || pointB == null) {
-            Paperwork.LOGGER.info("[FarmStick] Area incomplete — set both points first (click A, shift+click B)");
-            if (!player.world.isClientSide) {
-                say(player, TextFormatting.Base.YELLOW, "Farm area incomplete — set both corners first (click A, sneak+click B).");
-            }
-            return false;
-        }
+		if (pointA == null || pointB == null) {
+			Paperwork.LOGGER.info("[FarmStick] Area incomplete — set both points first (click A, shift+click B)");
+			if (!player.world.isClientSide) {
+				say(player, TextFormatting.Base.YELLOW, "Farm area incomplete — set both corners first (click A, sneak+click B).");
+			}
+			return false;
+		}
 
-        // The job only changes when it really changes: setJob rebuilds the
-        // brain and throws away the job state, so calling it on a farmer that
-        // already is one would drop its plot for nothing.
-        boolean jobChanged = !EmployeeJobs.FARMER_ID.equals(employee.jobId());
-        if (jobChanged) {
-            employee.setJob(EmployeeJobs.FARMER_ID);
-            Paperwork.LOGGER.info("[FarmStick] Employee changed its job to farmer");
-        }
+		// The job only changes when it really changes: setJob rebuilds the
+		// brain and throws away the job state, so calling it on a farmer that
+		// already is one would drop its plot for nothing.
+		boolean jobChanged = !EmployeeJobs.FARMER_ID.equals(employee.jobId());
+		if (jobChanged) {
+			employee.setJob(EmployeeJobs.FARMER_ID);
+			Paperwork.LOGGER.info("[FarmStick] Employee changed its job to farmer");
+		}
 
-        // The plot lives in the state of the job, not in a field of the mob.
-        employee.setJobState(FarmerJobState.withFarmArea(new PoscArea.Area2D(pointA, pointB)));
-        Paperwork.LOGGER.info("[FarmStick] Farm area assigned to farmer: {} -> {}", pointA, pointB);
+		// The plot lives in the state of the job, not in a field of the mob.
+		employee.setJobState(FarmerJobState.withFarmArea(new PoscArea.Area2D(pointA, pointB)));
+		Paperwork.LOGGER.info("[FarmStick] Farm area assigned to farmer: {} -> {}", pointA, pointB);
 
-        if (!player.world.isClientSide) {
-            if (jobChanged) {
-                say(player, TextFormatting.Base.GREEN, "Employee is now a farmer — got a farm area "
-                    + fmt(pointA) + " -> " + fmt(pointB) + ".");
-            } else {
-                say(player, TextFormatting.Base.GREEN, "Farmer got a farm area " + fmt(pointA) + " -> " + fmt(pointB) + ".");
-            }
-        }
+		if (!player.world.isClientSide) {
+			if (jobChanged) {
+				say(player, TextFormatting.Base.GREEN, "Employee is now a farmer — got a farm area "
+					+ fmt(pointA) + " -> " + fmt(pointB) + ".");
+			} else {
+				say(player, TextFormatting.Base.GREEN, "Farmer got a farm area " + fmt(pointA) + " -> " + fmt(pointB) + ".");
+			}
+		}
 
-        pointA = null;
-        pointB = null;
-        return true;
-    }
+		pointA = null;
+		pointB = null;
+		return true;
+	}
 
-    private static String fmt(TilePosc pos) {
-        return pos.x() + "/" + pos.y() + "/" + pos.z();
-    }
+	private static String fmt(TilePosc pos) {
+		return pos.x() + "/" + pos.y() + "/" + pos.z();
+	}
 
-    private void say(Player player, TextFormatting.Base color, String message) {
-        player.sendMessage(color, "[Farm] " + message);
-    }
+	private void say(Player player, TextFormatting.Base color, String message) {
+		player.sendMessage(color, "[Farm] " + message);
+	}
 }
