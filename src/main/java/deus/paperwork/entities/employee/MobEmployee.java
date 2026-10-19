@@ -102,6 +102,11 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// The last inventory contents sent to the clients, to send only what changed.
 	private final ItemStack[] syncedInventory = new ItemStack[INVENTORY_SIZE];
 
+	/// The job whose texture folder is currently applied on this side. The
+	/// client learns the job through the synched data, so it has to apply the
+	/// texture folder of the new job by itself.
+	private String appliedJobId = EmployeeJobs.PLAIN_ID;
+
 	// the workplace anchors, mirroring the old Optional fields; assign via
 	// assignFoodPlace / assignBed once the entity owns its places
 	public Optional<PoscArea.Area2D> food_place = Optional.empty();
@@ -166,8 +171,26 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 		EmployeeJob newJob = EmployeeJobs.byId(jobId);   // unknown id -> exception
 		this.entityData.set(DATA_JOB_ID, newJob.id());
 		AgentResetter.reset(this);                        // the brain is rebuilt
-		this.setTextureIdentifier("paperwork", newJob.textureFolder());
 		this.jobState = newJob.createState();
+		applyJobTexture(newJob);
+	}
+
+	/// Points the texture of this employee at the folder of its job, so the
+	/// skin reference resolves against the variants.json of that folder.
+	private void applyJobTexture(EmployeeJob job) {
+		this.appliedJobId = job.id();
+		this.setTextureIdentifier("paperwork", job.textureFolder());
+	}
+
+	/// Keeps the texture folder in sync with the job. The server changes the job
+	/// through setJob, but the client learns about it through the synched data,
+	/// so both sides have to watch the job id.
+	private void syncJobTexture() {
+		String id = jobId();
+		if (id.equals(appliedJobId)) {
+			return;
+		}
+		applyJobTexture(job());
 	}
 
 	/// The mutable state of the job of this employee.
@@ -332,6 +355,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	@Override
 	public void onLivingUpdate() {
 		super.onLivingUpdate();
+		syncJobTexture();
 		if (!this.world.isClientSide) {
 			return;
 		}
