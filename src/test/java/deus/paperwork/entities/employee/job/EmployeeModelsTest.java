@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 ///
 /// The test reads the real file from the classpath, so a rename of a geometry
 /// or a missing accessory fails here, not in the game.
-class EmployeeModelVariantsTest {
+class EmployeeModelsTest {
 
 	private static final String MODELS_PATH = "/assets/paperwork/models/entity/models.json";
 
@@ -107,7 +107,7 @@ class EmployeeModelVariantsTest {
 		List<String> geometries = new ArrayList<>();
 
 		for (String path : modelPaths()) {
-			try (InputStream stream = EmployeeModelVariantsTest.class.getResourceAsStream(path)) {
+			try (InputStream stream = EmployeeModelsTest.class.getResourceAsStream(path)) {
 				assertNotNull(stream, path + " is not on the classpath");
 				try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
 					JsonObject geo = JsonParser.parseReader(reader).getAsJsonObject();
@@ -138,7 +138,7 @@ class EmployeeModelVariantsTest {
 
 	/// The whole file, as it is on the classpath.
 	private static JsonObject models() {
-		try (InputStream stream = EmployeeModelVariantsTest.class.getResourceAsStream(MODELS_PATH)) {
+		try (InputStream stream = EmployeeModelsTest.class.getResourceAsStream(MODELS_PATH)) {
 			assertNotNull(stream, MODELS_PATH + " is not on the classpath");
 			try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
 				return JsonParser.parseReader(reader).getAsJsonObject();
