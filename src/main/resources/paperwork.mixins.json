@@ -4,6 +4,7 @@
   "package": "deus.paperwork.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "IAgentMob",
     "ItemMixin",
     "ItemsMixin",
     "PlayerMixin",
