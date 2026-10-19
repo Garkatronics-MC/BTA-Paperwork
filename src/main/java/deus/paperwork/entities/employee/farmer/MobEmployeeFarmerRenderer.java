@@ -15,7 +15,7 @@ public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
 
 	@Override
 	protected @Nullable StaticEntityModel getActiveModel(@NonNull MobEmployee mobEmployee) {
-		return this.getModel(mobEmployee.isWoman ? "woman" : "man");
+		return this.getModel(mobEmployee.isWoman() ? "woman" : "man");
 	}
 
 
@@ -27,7 +27,7 @@ public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
 		float partialTick,
 		int layer
 	) {
-		if(entity.isWoman) {
+		if(entity.isWoman()) {
 			this.bindTexture("/assets/paperwork/textures/entity/employee_farmer/woman/" + entity.getTextureReference() + ".png");
 		} else {
 			this.bindTexture("/assets/paperwork/textures/entity/employee_farmer/" + entity.getTextureReference() + ".png");

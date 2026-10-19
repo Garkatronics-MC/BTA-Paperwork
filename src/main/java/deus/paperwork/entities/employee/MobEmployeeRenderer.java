@@ -17,13 +17,13 @@ public class MobEmployeeRenderer extends MobRendererBiped<MobEmployee> {
 
 	@Override
 	protected @Nullable StaticEntityModel getActiveModel(@NonNull MobEmployee mobEmployee) {
-		return this.getModel(mobEmployee.isWoman ? "woman" : "man");
+		return this.getModel(mobEmployee.isWoman() ? "woman" : "man");
 	}
 
 	@Override
 	protected @Nullable StaticEntityModel getAndSetupModelForLayer(@NonNull MobEmployee entity, float brightness, float partialTick, int layer) {
 
-		if(entity.isWoman) {
+		if(entity.isWoman()) {
 			this.bindTexture("/assets/paperwork/textures/entity/employee/woman/" + entity.getTextureReference() + ".png");
 		} else {
 			this.bindTexture("/assets/paperwork/textures/entity/employee/" + entity.getTextureReference() + ".png");
