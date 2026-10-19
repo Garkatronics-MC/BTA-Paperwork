@@ -55,7 +55,11 @@ public class MobWorldAccess {
 		return true;
 	}
 
-	public void absorbNearbyItems(Item item) {
+	/// Absorbs the items of the given kinds that are lying on the floor around
+	/// the mob, into its inventory.
+	///
+	/// The items that do not fit stay on the floor.
+	public void absorbNearbyItems(Item... items) {
 
 		AABBd box = MathHelper.aabbGrow(
 			this.mob.bb,
@@ -82,7 +86,7 @@ public class MobWorldAccess {
 				continue;
 			}
 
-			if (!stack.getItem().equals(item)) {
+			if (!isOneOf(stack.getItem(), items)) {
 				continue;
 			}
 
@@ -97,7 +101,7 @@ public class MobWorldAccess {
 					this.mob,
 					"item.pickup",
 					0.2F,
-					1.0F
+					0.2F
 				);
 
 				if (stack.stackSize <= 0) {
@@ -105,6 +109,67 @@ public class MobWorldAccess {
 				}
 			}
 		}
+	}
+
+	/// Whether an item is one of the given ones.
+	private static boolean isOneOf(Item item, Item... items) {
+		for (Item candidate : items) {
+			if (item.equals(candidate)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/// Takes up to `amount` items of a kind from a chest into the inventory of
+	/// the mob. Returns how many were taken.
+	public int takeFromChest(TileEntityChest chest, Item item, int amount) {
+		return takeFromChest(this.inventory, chest, item, amount);
+	}
+
+	/// Takes up to `amount` items of a kind from a chest into an inventory.
+	/// Returns how many were taken.
+	///
+	/// The chest keeps what does not fit in the inventory.
+	public static int takeFromChest(ContainerMob inventory, TileEntityChest chest, Item item, int amount) {
+		if (inventory == null || chest == null || item == null || amount <= 0) {
+			return 0;
+		}
+
+		for (int i = 0; i < chest.getContainerSize(); i++) {
+			ItemStack stack = chest.getItem(i);
+
+			if (stack == null || stack.stackSize <= 0) {
+				continue;
+			}
+
+			if (!stack.getItem().equals(item)) {
+				continue;
+			}
+
+			int wanted = Math.min(amount, stack.stackSize);
+			ItemStack part = stack.copy();
+			part.stackSize = wanted;
+
+			inventory.insertItem(part);
+
+			// insertItem leaves what does not fit in the stack it is given.
+			int taken = wanted - part.stackSize;
+
+			if (taken <= 0) {
+				return 0;
+			}
+
+			stack.stackSize -= taken;
+
+			if (stack.stackSize <= 0) {
+				chest.setItem(i, null);
+			}
+
+			return taken;
+		}
+
+		return 0;
 	}
 
 	@Nullable

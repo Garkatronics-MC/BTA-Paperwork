@@ -404,6 +404,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		rechargeAtStations();            // the base one (food/rest)
 		super.updateAI();                // the brain
 		job().recharge(this, stats());   // the one of the job, AFTER the brain
+		job().work(this);                // what the job does in the world
 		publishHudState();
 		syncInventory();
 	}
@@ -586,6 +587,12 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 
 	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea, int id) {
 		return worldAccess.getBlocksInArea(blockArea, id);
+	}
+
+	/// The world access of this employee: the things around it and the
+	/// containers it can reach.
+	public MobWorldAccess worldAccess() {
+		return worldAccess;
 	}
 
 	// ------------------------------------------------------------------ food

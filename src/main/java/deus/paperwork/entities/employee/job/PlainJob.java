@@ -50,6 +50,10 @@ public final class PlainJob implements EmployeeJob {
 	@Override
 	public void recharge(MobEmployee mob, EmployeeStats stats) {}
 
+	/// The plain employee has no work of its own: it eats, rests and wanders.
+	@Override
+	public void work(MobEmployee mob) {}
+
 	/// The plain job has no station of its own, so it never asks for one.
 	@Override
 	public Optional<EmployeeAlert> missingStationAlert(MobEmployee mob) {

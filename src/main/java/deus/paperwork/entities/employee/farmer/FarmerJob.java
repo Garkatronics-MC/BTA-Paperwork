@@ -157,6 +157,13 @@ public final class FarmerJob implements EmployeeJob {
 			: Optional.empty();
 	}
 
+	/// The farmer gathers: the wheat and the seeds on the floor around it, and
+	/// the seeds of the chests next to it.
+	@Override
+	public void work(MobEmployee mob) {
+		FarmerCollector.collect(mob);
+	}
+
 	/// Firing a farmer takes its plot away.
 	@Override
 	public void clearStations(MobEmployee mob) {
