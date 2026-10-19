@@ -1,14 +1,19 @@
 package deus.paperwork.entities.employee.farmer;
 
 import deus.paperwork.entities.employee.MobEmployee;
+import deus.paperwork.entities.employee.job.client.EmployeeModelApplier;
 import net.minecraft.client.render.entity.MobRendererBiped;
-import net.minecraft.core.item.ItemStack;
-import net.minecraft.core.item.Items;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.useless.dragonfly.models.entity.StaticEntityModel;
 
+/// The renderer of the deprecated farmer entity (the stub).
+///
+/// It resolves its model under the entity "paperwork:employee_farmer" (the
+/// entry of models.json that T7 keeps) and applies the model spec of the
+/// job, so the farmer shows the wheat it carries.
 public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
+
 	public MobEmployeeFarmerRenderer() {
 		super(0.3f);
 	}
@@ -18,8 +23,6 @@ public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
 		return this.getModel(mobEmployee.isWoman() ? "woman" : "man");
 	}
 
-
-
 	@Override
 	protected @Nullable StaticEntityModel getAndSetupModelForLayer(
 		@NonNull MobEmployee entity,
@@ -27,7 +30,7 @@ public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
 		float partialTick,
 		int layer
 	) {
-		if(entity.isWoman()) {
+		if (entity.isWoman()) {
 			this.bindTexture("/assets/paperwork/textures/entity/employee_farmer/woman/" + entity.getTextureReference() + ".png");
 		} else {
 			this.bindTexture("/assets/paperwork/textures/entity/employee_farmer/" + entity.getTextureReference() + ".png");
@@ -44,32 +47,10 @@ public class MobEmployeeFarmerRenderer extends MobRendererBiped<MobEmployee> {
 			return null;
 		}
 
-		boolean wheat1 = false;
-		boolean wheat2 = false;
-		boolean wheat3 = false;
-
-		ItemStack stack = entity.inventory.findStackOf(Items.WHEAT);
-
-		if (stack != null && stack.stackSize > 0) {
-			wheat1 = true;
-
-			if (stack.stackSize >= 32) {
-				wheat2 = true;
-			}
-
-			if (stack.stackSize >= 64) {
-				wheat3 = true;
-			}
-		}
-
-		model.getTransform("wheat1").visible = wheat1;
-		model.getTransform("wheat2").visible = wheat2;
-		model.getTransform("wheat3").visible = wheat3;
+		// The setup of the model makes every bone visible again, so the spec of
+		// the job (the wheat bones) is applied AFTER it, never before.
+		EmployeeModelApplier.apply(model, entity.job().modelSpec(entity));
 
 		return model;
 	}
-
-
-
-
 }

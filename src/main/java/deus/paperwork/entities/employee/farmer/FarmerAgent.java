@@ -13,8 +13,8 @@ import deus.brainless.limbic.Psyche;
 import deus.brainless.limbic.Temperament;
 import deus.brainless.task.TaskFactory;
 import deus.brainless.utils.Timer;
-import deus.paperwork.ai.tasks.Farm;
 import deus.paperwork.ai.tasks.Goto;
+import deus.paperwork.entities.employee.MobEmployee;
 import deus.paperwork.entities.employee.MobEmployeeAgent;
 import deus.paperwork.entities.employee.model.EmployeeStats;
 import deus.paperwork.entities.employee.model.EmployeeStations;
@@ -22,11 +22,13 @@ import deus.paperwork.entities.employee.model.EmployeeTraits;
 
 import java.util.Optional;
 
-/// The employee brain, extended into a farmer: same limbs, senses and
-/// safety behaviour, plus a work drive that farms. Built by extending the
-/// employee's template with {@link Temperament#extend()} so plain employees
-/// never see the work drive.
-public final class EmployeeFarmerAgent {
+/// The farmer brain: the employee brain extended with a work drive that
+/// farms. Built by extending the employee's template with
+/// {@link Temperament#extend()} so plain employees never see the work drive.
+///
+/// The drive and the planner are the ones the farmer has always had: this is
+/// a move, not a rebalance.
+public final class FarmerAgent {
 
 	public static final Drive WORK = Drive.of("work");
 
@@ -34,12 +36,12 @@ public final class EmployeeFarmerAgent {
 	private static final GoapPlanner PLANNER = buildPlanner();
 	private static final DriveGoals GOALS = buildGoals();
 
-	private EmployeeFarmerAgent() {}
+	private FarmerAgent() {}
 
 	/// Builds the farmer brain wired to {@code mob}. Same contract as
 	/// {@link MobEmployeeAgent#build}: constants written once, stats re-sensed
 	/// every tick by the owner.
-	public static Agent build(MobEmployeeFarmer mob, EmployeeTraits traits, EmployeeStats stats, EmployeeStations stations) {
+	public static Agent build(MobEmployee mob, EmployeeTraits traits, EmployeeStats stats, EmployeeStations stations) {
 		Psyche psyche = new Psyche(TEMPERAMENT);
 		GoapArbiter arbiter = new GoapArbiter(
 			new HighestPriorityProposalSelector(),
@@ -47,7 +49,7 @@ public final class EmployeeFarmerAgent {
 		);
 		TaskFactory<GoapAction> tasks = action -> switch (action.id()) {
 			case "goto_farm" -> Goto.fromArea(mob, stations.workPlace(), "farm", 2.5, 0);
-			case "farm"      -> new Farm(mob);
+			case "farm"      -> new FarmTask(mob);
 			default          -> MobEmployeeAgent.employeeTask(action, mob, stations, stats);
 		};
 		Agent agent = new Agent(

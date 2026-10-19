@@ -1,11 +1,12 @@
-package deus.paperwork.ai.tasks;
+package deus.paperwork.entities.employee.farmer;
 
 import deus.brainless.task.StopReason;
 import deus.brainless.task.Task;
 import deus.brainless.task.TaskStatus;
 import deus.paperwork.Paperwork;
 import deus.paperwork.entities.base.CropWorldAccess;
-import deus.paperwork.entities.employee.farmer.MobEmployeeFarmer;
+import deus.paperwork.entities.employee.MobEmployee;
+import deus.paperwork.entities.employee.job.EmployeeJobState;
 import deus.paperwork.util.PoscArea;
 import net.minecraft.core.world.pos.TilePos;
 import net.minecraft.core.world.pos.TilePosc;
@@ -16,16 +17,20 @@ import java.util.Optional;
 
 /// Works the farm area: harvests ready crops first, then sows empty tiles.
 /// Succeeds once the farm has nothing left to do; fails when no farm area is set.
-public class Farm implements Task {
+///
+/// The area is not a field of the mob anymore: it lives in the state of the
+/// job, and the task reads it through the public API of the mob
+/// ({@code mob.jobState()}), so it does not know any concrete farmer class.
+public class FarmTask implements Task {
 
 	private static final double ACTION_REACH = 1.2;
 
-	private final MobEmployeeFarmer mob;
+	private final MobEmployee mob;
 
 	private TilePos currentTarget = null;
 	private boolean isHarvestAction = false;
 
-	public Farm(MobEmployeeFarmer mob) {
+	public FarmTask(MobEmployee mob) {
 		this.mob = mob;
 	}
 
@@ -37,9 +42,9 @@ public class Farm implements Task {
 
 	@Override
 	public TaskStatus tick() {
-		Optional<PoscArea.Area2D> farmAreaOpt = mob.farm_area;
+		Optional<PoscArea.Area2D> farmAreaOpt = farmArea();
 		if (farmAreaOpt.isEmpty()) {
-			Paperwork.LOGGER.info("[Farm] farm_area is empty, nothing to do");
+			Paperwork.LOGGER.info("[Farm] farm area is empty, nothing to do");
 			return TaskStatus.FAILURE;
 		}
 		PoscArea.Area2D area = farmAreaOpt.get();
@@ -102,5 +107,14 @@ public class Farm implements Task {
 		Paperwork.LOGGER.info("[Farm] stop ({}) — clearing target", reason);
 		currentTarget = null;
 		mob.stopMoving();
+	}
+
+	/// The plot the farmer works, read from the state of its job.
+	private Optional<PoscArea.Area2D> farmArea() {
+		EmployeeJobState state = mob.jobState();
+		if (state instanceof FarmerJobState farmerState) {
+			return farmerState.farmArea();
+		}
+		return Optional.empty();
 	}
 }
