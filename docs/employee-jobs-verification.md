@@ -95,10 +95,20 @@
 | 6.1 | arranque | arranca un servidor dedicado con el mod | arranca sin `NoClassDefFoundError` (antes `syncIcon()` llamaba a `TextureRegistry` desde el servidor) | ☐ |
 | 6.2 | gameplay | el servidor calcula el trabajo del farmer | el farmer siembra/cosecha y su HUD se ve en el cliente | ☐ |
 
-## 7. Extra: regresiones
+## 7. El uniforme del empleado
+
+| # | Caso | Pasos | Resultado esperado | OK |
+|---|---|---|---|---|
+| 7.1 | no se pelean | mira al empleado de cerca | la piel y el uniforme **no** se dibujan el uno sobre el otro: se ve la cara y el uniforme, limpio | ☐ |
+| 7.2 | una pieza por capa | mira al empleado | la chaqueta, las mangas y los pantalones se ven **una** vez cada uno, no apilados | ☐ |
+| 7.3 | sin cubo en los pies | mira las piernas | no hay un cubo extra en los pies (eran los pantalones del uniforme, dibujados 4 veces) | ☐ |
+| 7.4 | la cara se ve | mira al empleado de frente | se ve la cara (el gorro del uniforme todavia no tiene arte) | ☐ |
+| 7.5 | sin uniforme | quita una pieza de uniforme | la parte del cuerpo que tapa esa pieza vuelve a verse (la piel) | ☐ |
+
+## 8. Extra: regresiones
 
 | # | Caso | Pasos | Resultado esperado | OK |
 |---|---|---|---|---|
 | 7.1 | comer y dormir | asigna comida y cama con el `EmployeeStick` | el empleado va a comer y a dormir igual que antes | ☐ |
 | 7.2 | el oficio no toca huesos ajenos | mira a un plain | el esqueleto del plain no tiene huesos de trigo: nada "parpadea" ni se ensucia el esqueleto compartido | ☐ |
-| 7.3 | builds | `./gradlew build` | pasa (es lo que corre el CI) | ☐ |
+| 8.3 | builds | `./gradlew build` | pasa (es lo que corre el CI) | ☐ |
