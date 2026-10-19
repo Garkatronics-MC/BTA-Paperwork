@@ -36,6 +36,11 @@ public interface EmployeeJob {
 	EmployeeModelSpec modelSpec(MobEmployee mob);
 
 	/// The brain of a mob with this job.
+	///
+	/// The signature repeats data the mob already has (the traits and the
+	/// stats): it stays because the spec fixes that exact signature for the
+	/// recharge ("the strategy needs both the stats and the distance test")
+	/// and the same reasoning applies to the agent.
 	Agent buildAgent(MobEmployee mob, EmployeeTraits traits, EmployeeStats stats, EmployeeStations stations);
 
 	/// The stations of the job: the base ones (food/rest) plus the job's own (workplace).

@@ -21,6 +21,12 @@ public record EmployeeModelSpec(List<EmployeeBone> bones) {
 
 	/// One bone of the skeleton.
 	///
+	/// The poses (pitch/yaw/roll, set with {@link #posed}) are not used by any
+	/// job yet: they stay because the spec defines the presentation of a job
+	/// as "the setup of visuals/poses" and mentions "the poses of the job"
+	/// twice. Today the farmer only turns bones on and off, but the mechanism
+	/// belongs to the spec, not to the farmer.
+	///
 	/// @param name    bone name, as in the geometry
 	/// @param visible whether the bone is drawn
 	/// @param pitch   rotation on X, null means "do not touch the rotation"

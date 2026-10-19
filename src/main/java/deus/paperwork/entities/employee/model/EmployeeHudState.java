@@ -48,6 +48,14 @@ public record EmployeeHudState(
 
 	/// Computes the HUD state: the scariest need wins, and the most urgent
 	/// missing station wins.
+	///
+	/// The priority of the alert is the one the HUD had before the refactor:
+	/// NO_FOOD_PLACE, then NO_REST_PLACE, then the alert of the job, and
+	/// GOOD when nothing is missing. It is kept as it is so the refactor does
+	/// not degrade the information the HUD already gave. The alert of the job
+	/// shows up for the employee that is set up (it has food and a bed) but
+	/// misses its own station: exactly the case the spec wants to see (the
+	/// farmer without a workplace).
 	public static EmployeeHudState compute(Conditions in) {
 		EmployeeStateIcons state = computeState(in);
 		EmployeeAlert alert = computeAlert(in);

@@ -22,6 +22,10 @@ public final class AgentResetter {
 		if (mob == null) {
 			throw new IllegalArgumentException("Cannot reset the brain of a null mob");
 		}
+		/// The check looks like dead code (the mixin is always applied), but it
+		/// stays: if the mixin ever did not get applied (a config problem, a
+		/// conflict with another mod), it turns a cryptic ClassCastException
+		/// into an error that says what to do.
 		if (!(mob instanceof IAgentMob accessor)) {
 			throw new IllegalStateException("Cannot reset the brain of " + mob.getClass().getName()
 				+ ": the Brainless agent accessor (deus.paperwork.mixin.IAgentMob) is not applied."
