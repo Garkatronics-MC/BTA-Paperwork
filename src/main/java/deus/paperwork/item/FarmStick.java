@@ -69,12 +69,26 @@ public class FarmStick extends Item {
             return false;
         }
 
-        employee.setJob(EmployeeJobs.FARMER_ID);
+        // The job only changes when it really changes: setJob rebuilds the
+        // brain and throws away the job state, so calling it on a farmer that
+        // already is one would drop its plot for nothing.
+        boolean jobChanged = !EmployeeJobs.FARMER_ID.equals(employee.jobId());
+        if (jobChanged) {
+            employee.setJob(EmployeeJobs.FARMER_ID);
+            Paperwork.LOGGER.info("[FarmStick] Employee changed its job to farmer");
+        }
+
+        // The plot lives in the state of the job, not in a field of the mob.
         employee.setJobState(FarmerJobState.withFarmArea(new PoscArea.Area2D(pointA, pointB)));
         Paperwork.LOGGER.info("[FarmStick] Farm area assigned to farmer: {} -> {}", pointA, pointB);
 
         if (!player.world.isClientSide) {
-            say(player, TextFormatting.Base.GREEN, "Farmer got a farm area " + fmt(pointA) + " -> " + fmt(pointB) + ".");
+            if (jobChanged) {
+                say(player, TextFormatting.Base.GREEN, "Employee is now a farmer — got a farm area "
+                    + fmt(pointA) + " -> " + fmt(pointB) + ".");
+            } else {
+                say(player, TextFormatting.Base.GREEN, "Farmer got a farm area " + fmt(pointA) + " -> " + fmt(pointB) + ".");
+            }
         }
 
         pointA = null;
