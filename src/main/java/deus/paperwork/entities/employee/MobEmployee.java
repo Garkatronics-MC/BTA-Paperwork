@@ -1,22 +1,18 @@
 package deus.paperwork.entities.employee;
 
-import de.bsommerfeld.pathetic.api.pathing.NeighborStrategies;
-import de.bsommerfeld.pathetic.api.pathing.configuration.PathfinderConfiguration;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicStrategies;
-import de.bsommerfeld.pathetic.api.pathing.heuristic.HeuristicWeights;
-import de.bsommerfeld.pathetic.api.pathing.processing.ValidationProcessor;
-import de.bsommerfeld.pathetic.api.wrapper.PathPosition;
-import deus.brainless.ai.AI;
-import deus.brainless.pathfinding.MobPathfinder;
-import deus.paperwork.ai.AIHolder;
-import deus.paperwork.ai.Brains;
-import deus.paperwork.ai.pathfinding.EmployeeWalkValidator;
+import deus.brainless.agent.Agent;
+import deus.brainless.agent.AgentMob;
+import deus.brainless.goap.GoapState;
+import deus.paperwork.ai.tasks.Food;
 import deus.paperwork.entities.base.ContainerMob;
+import deus.paperwork.entities.base.MobWorldAccess;
 import deus.paperwork.entities.employee.enums.EmployeeAlert;
 import deus.paperwork.entities.employee.enums.EmployeeEmotions;
 import deus.paperwork.entities.employee.enums.EmployeeStateIcons;
+import deus.paperwork.entities.employee.model.EmployeeStats;
+import deus.paperwork.entities.employee.model.EmployeeStations;
+import deus.paperwork.entities.employee.model.EmployeeTraits;
 import deus.paperwork.interfaces.ICustomizable;
-import deus.paperwork.interfaces.WithAI;
 import deus.paperwork.uniforms.HairPiece;
 import deus.paperwork.uniforms.HairStyle;
 import deus.paperwork.uniforms.UniformPiece;
@@ -27,30 +23,32 @@ import deus.utils.annotations.RegisterEntity;
 import deus.utils.annotations.RegisterEntityRenderer;
 import net.minecraft.client.render.texture.stitcher.IconCoordinate;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
-import net.minecraft.core.block.Block;
-import net.minecraft.core.block.Blocks;
 import net.minecraft.core.block.entity.TileEntityChest;
-import net.minecraft.core.entity.EntityItem;
+import net.minecraft.core.entity.Entity;
 import net.minecraft.core.entity.IItemHolding;
-import net.minecraft.core.item.Item;
+import net.minecraft.core.entity.player.Player;
+import net.minecraft.core.item.ItemFood;
 import net.minecraft.core.item.ItemStack;
-import net.minecraft.core.item.Items;
-import net.minecraft.core.player.inventory.container.ContainerInventory;
-import net.minecraft.core.player.inventory.container.ContainerSimple;
-import net.minecraft.core.util.helper.MathHelper;
+import net.minecraft.core.util.helper.DamageType;
 import net.minecraft.core.world.World;
 import net.minecraft.core.world.pos.TilePos;
 import net.minecraft.core.world.pos.TilePosc;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.primitives.AABBd;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 
 @RegisterEntityRenderer(renderer = MobEmployeeRenderer.class)
 @RegisterEntity(id = "employee", name = "employee")
-public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomizable {
+public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable {
 
+	/// The hair colour of every skin of the employee, by its texture reference.
 	private static final HashMap<String, Integer> skinToHairColor = new HashMap<>();
 
 	static {
@@ -65,47 +63,42 @@ public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomi
 		skinToHairColor.put("8", 0x332411);
 	}
 
-	private static final double HUNGER_RATE = 0.0002;
-	private static final double FATIGUE_RATE = 0.0001;
-	private static final double WORK_RATE = 0.00015;
-	private static final double SOCIAL_RATE = 0.0001;
+	private static final int STRIKE_DAMAGE = 3;
 
-	public Optional<TilePosc> bed_position = Optional.empty();
+	// how much one bite / sleep tick of recharging pays off, kept from the old passive drain
+	private static final double EAT_RELIEF         = 0.3;    // one eaten item
+	private static final double NEAR_FOOD_RELIEF   = 0.003;  // per tick standing at the food place
+	private static final double NEAR_REST_RELIEF   = 0.004;  // per tick standing at the bed
+	private static final double STATION_NEAR_RANGE = 2.0;
+	private static final float  MOVE_SPEED         = 0.9f;
+
+	private final EmployeeTraits traits = EmployeeTraits.random();
+	private final EmployeeStats stats = new EmployeeStats();
+	public final ContainerMob inventory = new ContainerMob("employee_inventory", 9);
+	private final MobWorldAccess worldAccess = new MobWorldAccess(this, inventory);
+
+	// the workplace anchors, mirroring the old Optional fields; assign via
+	// assignFoodPlace / assignBed once the entity owns its places
 	public Optional<PoscArea.Area2D> food_place = Optional.empty();
+	public Optional<TilePosc> bed_position = Optional.empty();
 
+	public boolean isWoman = new Random().nextInt(2) == 1;
+
+	// The look of the employee: the uniform pieces it wears and its hairstyle.
 	private final Map<UniformShape, UniformPiece> uniformPieces = new EnumMap<>(UniformShape.class);
 	private HairPiece hairPiece = null;
 
-	public double hunger = 0.8;
-	public double fatigue = 0.1;
-	public double work = 0.8;
-	public double danger = 0.0;
-	public double social = 0.8;
-	public double health = 1.0;
-
-	private final double traitSocial;
-	private final double traitBrave;
-	private final double traitHardworking;
-	private final double traitLazy;
-
-
+	// HUD render state, fed to the renderer every tick (see syncIcon)
 	public EmployeeAlert currentAlert = EmployeeAlert.NO_FOOD_PLACE;
 	public EmployeeStateIcons currentLowState = EmployeeStateIcons.ASLEEP;
 	public EmployeeEmotions currentEmotion = EmployeeEmotions.HAPPY;
 
-	protected AIHolder<?> aiHolder;
-
-	public final @NotNull ContainerMob inventory;
-
-
 	public MobEmployee(@NotNull World world) {
-		this(world, new AIHolder<>(Brains.EmployeeAI.get()));
-	}
-
-	protected MobEmployee(@NotNull World world, AIHolder<?> aiHolder) {
 		super(world);
 		this.setTextureIdentifier("paperwork", "employee");
+		this.moveSpeed = MOVE_SPEED;
 
+		// The look of the employee: a random hairstyle and the default uniform.
 		HairStyle[] styles = Arrays.stream(HairStyle.values())
 			.filter(s -> s != HairStyle.NONE)
 			.toArray(HairStyle[]::new);
@@ -116,300 +109,247 @@ public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomi
 		uniformPieces.put(UniformShape.SHIRT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
 		uniformPieces.put(UniformShape.HAT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
 		uniformPieces.put(UniformShape.PANTS, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
-
-		this.inventory = new ContainerMob("employee_inventory", 9);
-
-		this.aiHolder = aiHolder;
-
-		moveSpeed = 0.9f;
-
-		Random rng = new Random();
-		traitSocial      = 0.3 + rng.nextDouble() * 0.7;
-		traitBrave       = 0.3 + rng.nextDouble() * 0.7;
-		traitHardworking = 0.3 + rng.nextDouble() * 0.7;
-		traitLazy        = 0.3 + rng.nextDouble() * 0.7;
-
-		ai().update(
-			input -> input
-				// Initialize traits
-				.set("trait_social", traitSocial)
-				.set("trait_brave", traitBrave)
-				.set("trait_hardworking", traitHardworking)
-				.set("trait_lazy", traitLazy),
-			this
-		);
-
-		configurePathfinding();
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T extends MobEmployee> AI<T> ai() {
-		return (AI<T>) aiHolder.ai();
-	}
+	// ------------------------------------------------------------------ the brain
 
-
-
-	public boolean openChest(TilePosc posc) {
-		Block<?> block = world.getBlockType(posc);
-		if (!block.isEntityTile() || block.id() != Blocks.CHEST_PLANKS_OAK.id()) return false;
-		TileEntityChest chest = (TileEntityChest) world.getTileEntity(posc);
-
-		return true;
-	}
-
-	public void absorbNearbyItems(Item item) {
-
-		AABBd box = MathHelper.aabbGrow(
-			this.bb,
-			3.0,
-			1.0,
-			3.0,
-			new AABBd()
-		);
-
-		for (EntityItem entityItem :
-			this.world.getEntitiesWithinAABB(EntityItem.class, box)) {
-
-			if (!entityItem.isAlive()) {
-				continue;
-			}
-
-			if (entityItem.pickupDelay > 0) {
-				continue;
-			}
-
-			ItemStack stack = entityItem.item;
-
-			if (stack == null) {
-				continue;
-			}
-
-			if (!stack.getItem().equals(item)) {
-				continue;
-			}
-
-			int before = stack.stackSize;
-
-			this.inventory.insertItem(stack);
-
-			if (stack.stackSize < before) {
-
-				this.world.playSoundAtEntity(
-					null,
-					this,
-					"item.pickup",
-					0.2F,
-					1.0F
-				);
-
-				if (stack.stackSize <= 0) {
-					entityItem.remove();
-				}
-			}
-		}
-	}
-
-	public Optional<ItemStack> findItem(TileEntityChest chest, int itemId) {
-		if (chest == null) return Optional.empty();
-		for (int i = 0; i < 27; i++) {
-			ItemStack stack = chest.getItem(i);
-			if (stack != null && stack.getItem().id == itemId) return Optional.of(stack);
-		}
-		return Optional.empty();
-	}
-
-	public TileEntityChest getChest(TilePosc posc) {
-		Block<?> block = world.getBlockType(posc);
-		if (!block.isEntityTile() || (block.id() != Blocks.CHEST_PLANKS_OAK.id() && block.id() != Blocks.CHEST_PLANKS_OAK_PAINTED.id())) return null;
-		return (TileEntityChest) world.getTileEntity(posc);
-	}
-
-	public boolean eatFoodInChest(TileEntityChest chest, int itemId) {
-		return findItem(chest, itemId).map(stack -> {
-			eatFood(stack);
-			stack.consumeItem(null);
-			hunger = AI.clamp(hunger - 0.3);
-			return true;
-		}).orElse(false);
-	}
-
-	private void syncIcon() {
-		IconCoordinate alertIcon   = TextureRegistry.getTexture(currentAlert.path);
-		IconCoordinate stateIcon   = TextureRegistry.getTexture(currentLowState.path);
-		IconCoordinate emotionIcon = TextureRegistry.getTexture(currentEmotion.path);
-		float progressValue = (float) work;
-
-		RenderUtils.setTarget(this, new RenderUtils.EmployeeRenderData(
-			alertIcon, stateIcon, emotionIcon, progressValue
-		));
-	}
-
-	private void configurePathfinding() {
-		maxIterations = 10_000;
-		maxLength = 128;
-		strategy = NeighborStrategies.DIAGONAL_3D;
-		HeuristicWeights weights = HeuristicWeights.create(
-			0.0,  // Manhattan
-			1.0,  // Octile — natural diagonal movement
-			3.0,  // Height — still avoids climbing but less aggressive
-			4.0   // Perpendicular — stronger line-following = hugs walls naturallye
-		);
-		pathFinderConfig = PathfinderConfiguration.builder()
-			.async(true)
-			.fallback(true)
-			.maxIterations(maxIterations)
-			.maxLength(maxLength)
-			.neighborStrategy(strategy)
-			.validationProcessors(buildValidators())
-			.provider(provider)
-			.heuristicWeights(weights)
-			.heuristicStrategy(HeuristicStrategies.LINEAR)
-			.build();
+	@Override
+	protected Agent createAgent() {
+		return MobEmployeeAgent.build(this, traits, stats, stations());
 	}
 
 	@Override
-	protected List<ValidationProcessor> buildValidators() {
-		return List.of(new EmployeeWalkValidator(this.world));
-
+	protected void sense(Agent agent) {
+		// vanilla health -> [0, 1] drive input, then natural drift, then fresh inputs
+		stats.syncHealth(this.getHealth(), this.getMaxHealth());
+		super.sense(agent);
+		stats.tick();
+		stats.set(agent);
 	}
-
-
 
 	@Override
-	public void tick() {
-		super.tick();
+	protected Entity acquireTarget() {
+		Entity closest = null;
+		double closestDistance = Double.MAX_VALUE;
 
-		if (this.world.isClientSide) {
-			return;
+		for (Player player : world.players) {
+			if (!player.isAlive()) continue;
+			double distance = distanceTo(player);
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closest = player;
+			}
 		}
-
-		hunger = AI.clamp(hunger + HUNGER_RATE);
-		health = (double) this.getHealth() / this.getMaxHealth();
-
-		fatigue = AI.clamp(fatigue + FATIGUE_RATE);
-		work = AI.clamp(work - WORK_RATE);
-		social = AI.clamp(social - SOCIAL_RATE);
-
-
+		return closest;
 	}
+
+	@Override
+	protected void strike(Entity target, float distance) {
+		target.hurt(this, STRIKE_DAMAGE, DamageType.COMBAT);
+	}
+
+	@Override
+	protected GoapState worldState() {
+		GoapState state = super.worldState();
+		state.set("attacked", 0f);
+		state.set("fled", 0f);
+		state.set("safe", 0f);
+		state.set("wandered", 0f);
+		return state;
+	}
+
+	// ------------------------------------------------------------------ stations
+
+	/// Live view of the workplace: the suppliers re-read the fields every call, so
+	/// stations assigned after the agent was built are picked up immediately.
+	/// Unassigned stations fail their tasks fast, keeping only the built-in
+	/// behaviour (wander, fight) alive.
+	public EmployeeStations stations() {
+		return new EmployeeStations(
+			() -> food_place.map(area -> (PoscArea) area),
+			this::foodSource,
+			() -> bed_position.map(MobEmployee::asArea),
+			Optional::empty   // plain employees have no workplace
+		);
+	}
+
+	/// The seam the {@code eat} task bites through: any stocked oak chest in the
+	/// food place that keeps an {@link ItemFood} stack.
+	private Optional<Food> foodSource() {
+		return food_place.<Food>map(area -> new ChestFood());
+	}
+
+	public void assignFoodPlace(@Nullable PoscArea.Area2D area) {
+		this.food_place = Optional.ofNullable(area);
+	}
+
+	public void assignBed(@Nullable TilePosc bed) {
+		this.bed_position = Optional.ofNullable(bed);
+	}
+
+	public void clearStations() {
+		food_place = Optional.empty();
+		bed_position = Optional.empty();
+	}
+
+	private static PoscArea.Area2D asArea(TilePosc p) {
+		TilePos a = new TilePos(p.x(), p.y(), p.z());
+		return new PoscArea.Area2D(a, new TilePos(p.x(), p.y(), p.z()));
+	}
+
+	// ------------------------------------------------------------------ ticking
 
 	@Override
 	protected void updateAI() {
-//		if (work_place.isEmpty()) {
-//			currentAlert = EmployeeAlert.NO_WORKPLACE;
-//		} else if (food_place.isEmpty()) {
-//			currentAlert = EmployeeAlert.NO_FOOD_PLACE;
-//		} else if (bed_place.isEmpty()) {
-//			currentAlert = EmployeeAlert.NO_REST_PLACE;
-//		} else {
-//			currentAlert = EmployeeAlert.GOOD;
-//		}
-
-		if (danger >= 0.51) {
-			currentLowState = EmployeeStateIcons.SCARED;
-		} else if (fatigue >= 0.4) {
-			currentLowState = EmployeeStateIcons.TIRED;
-		} else if (hunger >= 0.6) {
-			currentLowState = EmployeeStateIcons.HUNGRY;
-		} else {
-			currentLowState = EmployeeStateIcons.GOOD;
-		}
-
+		// HUD state is cheap and read on both sides; the rest is server business.
+		updateDisplayState();
 		syncIcon();
-
 		if (this.world.isClientSide) {
 			return;
 		}
-		double low_health = 1.0 - health;
-		ai().update(
-			input -> input
-				.set("low_health", low_health)
-
-				// Needs
-				.set("social", social)
-				.set("health", health)
-				.set("danger", danger)
-				.set("fatigue", fatigue)
-				.set("hunger", hunger)
-				.set("work", work),
-			this
-		);
-
-
-		if (food_place.isPresent() && near(food_place.get().center(), 2.0)) {
-			hunger = AI.clamp(hunger - 0.003);
-		}
-		if (bed_position.isPresent() && near(bed_position.get(), 2.0)) {
-			fatigue = AI.clamp(fatigue - 0.004);
-		}
-//		if (work_place.isPresent() && near(work_place.get(), 2.5)) {
-//			work = AI.clamp(work + 0.003);
-//		}
-
+		rechargeAtStations();
 		super.updateAI();
 	}
 
-	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea) {
-		List<TilePosc> arr = new ArrayList<>();
-		int min_x = Math.min(blockArea.a().x(), blockArea.b().x());
-		int max_x = Math.max(blockArea.a().x(), blockArea.b().x());
-		int min_z = Math.min(blockArea.a().z(), blockArea.b().z());
-		int max_z = Math.max(blockArea.a().z(), blockArea.b().z());
-		int y = blockArea.a().y();
-
-		for (int i = min_x; i <= max_x; i++) {
-			for (int j = min_z; j <= max_z; j++) {
-				arr.add(new TilePos(i, y, j));
-			}
+	/// Mirrors the old passive drain: standing at a station slowly pays the
+	/// matching deficit. The one-shot bite/sleep is handled by the tasks; this
+	/// is what makes the {@code rest} plan terminate off-shift. Subclasses with
+	/// more stations (farmer) extend this by recharging their own deficits.
+	protected void rechargeAtStations() {
+		if (food_place.isPresent() && near(food_place.get().center(), STATION_NEAR_RANGE)) {
+			stats.eat(NEAR_FOOD_RELIEF);
 		}
-
-		return arr;
+		if (bed_position.isPresent() && near(bed_position.get(), STATION_NEAR_RANGE)) {
+			stats.rest(NEAR_REST_RELIEF);
+		}
 	}
 
-	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea, int id) {
-		return getBlocksInArea(blockArea).stream()
-			.filter(p -> world.getBlockType(p).id() == id)
-			.toList();
-	}
-
-
-
+	/// Same 2D distance rule the tasks use: ignores height.
 	public boolean near(TilePosc pos, double dist) {
 		double dx = pos.x() + 0.5 - this.x;
 		double dz = pos.z() + 0.5 - this.z;
 		return Math.sqrt(dx * dx + dz * dz) <= dist;
 	}
 
-	@Nullable
-	public TilePos roamRandomPath(PoscArea.Area2D area) {
+	// ------------------------------------------------------------------ HUD
 
-		int minX = Math.min(area.a().x(), area.b().x());
-		int maxX = Math.max(area.a().x(), area.b().x());
-		int minZ = Math.min(area.a().z(), area.b().z());
-		int maxZ = Math.max(area.a().z(), area.b().z());
-
-		int y = area.a().y();
-
-		for (int i = 0; i < 10; i++) {
-
-			int x = minX + this.random.nextInt(maxX - minX + 1);
-			int z = minZ + this.random.nextInt(maxZ - minZ + 1);
-
-			if (!this.world.isAirBlock(x, y, z)) {
-				continue;
-			}
-
-			if (this.world.isAirBlock(x, y - 1, z)) {
-				continue;
-			}
-
-			return new TilePos(x, y, z);
+	private void updateDisplayState() {
+		if (danger() >= 0.51) {
+			currentLowState = EmployeeStateIcons.SCARED;
+		} else if (stats.fatigue >= 0.4) {
+			currentLowState = EmployeeStateIcons.TIRED;
+		} else if (stats.hunger >= 0.6) {
+			currentLowState = EmployeeStateIcons.HUNGRY;
+		} else {
+			currentLowState = EmployeeStateIcons.GOOD;
 		}
 
-		return null;
+		if (food_place.isEmpty()) {
+			currentAlert = EmployeeAlert.NO_FOOD_PLACE;
+		} else if (bed_position.isEmpty()) {
+			currentAlert = EmployeeAlert.NO_REST_PLACE;
+		} else {
+			currentAlert = EmployeeAlert.GOOD;
+		}
 	}
 
-	public void setDanger(double danger) { this.danger = danger; }
+	private void syncIcon() {
+		IconCoordinate alertIcon = TextureRegistry.getTexture(currentAlert.path);
+		IconCoordinate stateIcon = TextureRegistry.getTexture(currentLowState.path);
+		IconCoordinate emotionIcon = TextureRegistry.getTexture(currentEmotion.path);
+		RenderUtils.setTarget(this, new RenderUtils.EmployeeRenderData(
+			alertIcon, stateIcon, emotionIcon, (float) stats.work
+		));
+	}
+
+	// ------------------------------------------------------------------ stats & helpers
+
+	public EmployeeStats stats() {
+		return stats;
+	}
+
+	/// The creator's roll; protects the immutable traits from subclasses.
+	protected EmployeeTraits traits() {
+		return traits;
+	}
+
+	public double danger() {
+		return stats.danger;
+	}
+
+	/// External threat signal (source fired a projectile, mob is on fire, ...).
+	public void setDanger(double danger) {
+		stats.setDanger(danger);
+	}
+
+	/// Tiles listed by a 2D area at its anchor height (shared with the farmer).
+	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea) {
+		return worldAccess.getBlocksInArea(blockArea);
+	}
+
+	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea, int id) {
+		return worldAccess.getBlocksInArea(blockArea, id);
+	}
+
+	// ------------------------------------------------------------------ food
+
+	/// "Where does this employee eat" made concrete: the nearest stocked chest
+	/// inside the assigned food place, and one bite taken from it.
+	private class ChestFood implements Food {
+
+		@Override
+		public Optional<TilePosc> nearestChest(double mobX, double mobZ) {
+			TilePosc best = null;
+			double bestDistance = Double.MAX_VALUE;
+			PoscArea.Area2D area = food_place.get();
+
+			for (TilePosc p : getBlocksInArea(area)) {
+				TileEntityChest chest = worldAccess.getChest(p);
+				if (chest == null || !hasFood(chest)) continue;
+
+				double dx = p.x() + 0.5 - mobX;
+				double dz = p.z() + 0.5 - mobZ;
+				double distance = dx * dx + dz * dz;
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					best = p;
+				}
+			}
+			return Optional.ofNullable(best);
+		}
+
+		@Override
+		public boolean eatFrom(TilePosc spot) {
+			TileEntityChest chest = worldAccess.getChest(spot);
+			if (chest == null) return false;
+
+			Optional<ItemStack> found = findFood(chest);
+			if (found.isEmpty()) return false;
+
+			ItemStack stack = found.get();
+			MobEmployee.this.eatFood(stack);
+			stack.consumeItem(null);
+			stats.eat(EAT_RELIEF);
+			return true;
+		}
+
+		private boolean hasFood(TileEntityChest chest) {
+			return findFood(chest).isPresent();
+		}
+
+		private Optional<ItemStack> findFood(TileEntityChest chest) {
+		// 27 = a single chest's slot count, matching MobWorldAccess.findItem
+			for (int i = 0; i < 27; i++) {
+				ItemStack stack = chest.getItem(i);
+				if (stack != null && stack.getItem() instanceof ItemFood) {
+					return Optional.of(stack);
+				}
+			}
+			return Optional.empty();
+		}
+	}
+
+	// ------------------------------------------------------------------ holding
 
 	@Override
 	public @Nullable ItemStack getHeldItem() {
@@ -417,15 +357,71 @@ public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomi
 	}
 
 	@Override
-	public void setHeldItem(@Nullable ItemStack itemStack) {
-
-	}
+	public void setHeldItem(@Nullable ItemStack itemStack) {}
 
 	@Override
 	public boolean isLeftHanded() {
 		return false;
 	}
 
+	/* ---------------------------------------------------------------------
+	 * TODO(brainless seam): restore the old pathfinder configuration.
+	 *
+	 * In Brainless v1.5.0-pre3 AgentMob's MobNavigator is private and
+	 * unconfigurable, so the old employee pathfinding is commented out here.
+	 *
+	 * Needs in AgentMob (Brainless):
+	 *     private final MobNavigator navigator;
+	 *     protected AgentMob(World world) {
+	 *         super(world);
+	 *         this.navigator = createNavigator();
+	 *     }
+	 *     protected MobNavigator createNavigator() { return new MobNavigator(this); }
+	 *
+	 * Needs here:
+	 *     @Override
+	 *     protected MobNavigator createNavigator() { return new EmployeeNavigator(this); }
+	 *
+	 * private static class EmployeeNavigator extends MobNavigator {
+	 *
+	 *     EmployeeNavigator(Mob mob) {
+	 *         super(mob);
+	 *         maxIterations = 10_000;
+	 *         maxLength = 128;
+	 *         strategy = NeighborStrategies.DIAGONAL_3D;
+	 *     }
+	 *
+	 *     @Override
+	 *     protected PathfinderConfiguration configPathfinding() {
+	 *         // Octile — natural diagonal movement; height damped but still
+	 *         // avoids climbing; perpendicular boosted = hugs walls naturally.
+	 *         HeuristicWeights weights = HeuristicWeights.create(
+	 *             0.0,  // Manhattan
+	 *             1.0,  // Octile
+	 *             3.0,  // Height
+	 *             4.0   // Perpendicular
+	 *         );
+	 *         return PathfinderConfiguration.builder()
+	 *             .async(true)
+	 *             .fallback(true)
+	 *             .maxIterations(maxIterations)
+	 *             .maxLength(maxLength)
+	 *             .neighborStrategy(strategy)
+	 *             .validationProcessors(buildValidators())
+	 *             .provider(provider)
+	 *             .heuristicWeights(weights)
+	 *             .heuristicStrategy(HeuristicStrategies.LINEAR)
+	 *             .build();
+	 *     }
+	 *
+	 *     @Override
+	 *     protected List<ValidationProcessor> buildValidators() {
+	 *         return List.of(new EmployeeWalkValidator(mob.world));
+	 *     }
+	 * }
+	 * ------------------------------------------------------------------ */
+
+	// ------------------------------------------------------------------ the look
 
 	@Override
 	public @Nullable UniformPiece getUniformPiece(@NotNull UniformShape slot) {
@@ -447,5 +443,4 @@ public class MobEmployee extends MobPathfinder implements IItemHolding, ICustomi
 	public void setHairPiece(@NotNull HairPiece piece) {
 		this.hairPiece = piece;
 	}
-
 }

@@ -1,6 +1,5 @@
 package deus.paperwork;
 
-import deus.brainless.ai.AI;
 import deus.paperwork.block.PaperworkBlocks;
 import deus.paperwork.entities.pigeon.MobPigeon;
 import deus.paperwork.item.PaperworkItems;
