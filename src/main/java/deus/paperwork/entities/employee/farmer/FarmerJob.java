@@ -3,6 +3,7 @@ package deus.paperwork.entities.employee.farmer;
 import deus.brainless.agent.Agent;
 import deus.paperwork.entities.employee.MobEmployee;
 import deus.paperwork.entities.employee.enums.EmployeeAlert;
+import deus.paperwork.entities.employee.job.EmployeeAccessory;
 import deus.paperwork.entities.employee.job.EmployeeJob;
 import deus.paperwork.entities.employee.job.EmployeeJobState;
 import deus.paperwork.entities.employee.job.EmployeeJobs;
@@ -46,24 +47,27 @@ public final class FarmerJob implements EmployeeJob {
 	private static final String BONE_WHEAT_2 = "wheat2";
 	private static final String BONE_WHEAT_3 = "wheat3";
 
+	/// The bag of the farmer: the accessory layer that makes a farmer look like
+	/// one. Its model is the one of the entity in models.json ("farmer_bag").
+	private static final EmployeeAccessory FARMER_BAG = new EmployeeAccessory(
+		"farmer_bag",
+		"/assets/paperwork/textures/entity/employee/accessories/farmer_bag.png"
+	);
+
 	@Override
 	public String id() {
 		return EmployeeJobs.FARMER_ID;
 	}
 
+	/// The farmer carries its bag: an accessory layer on top of the employee,
+	/// with the wheat it has gathered on it.
 	@Override
-	public String modelVariant(boolean isWoman) {
-		return isWoman ? "farmer_woman" : "farmer_man";
+	public List<EmployeeAccessory> accessories() {
+		return List.of(FARMER_BAG);
 	}
 
-	@Override
-	public String textureFolder() {
-		return "employee_farmer";
-	}
-
-	/// The farmer skeleton has three wheat bones: they show up as the farmer
-	/// carries more wheat. The rest of the bones (hat, seed_bag, wheat_bag)
-	/// are left alone.
+	/// The bones of the bag of the farmer: they show up as the farmer carries
+	/// more wheat. The rest of the bones are left alone.
 	@Override
 	public EmployeeModelSpec modelSpec(MobEmployee mob) {
 		return new EmployeeModelSpec(wheatBones(wheatCount(mob)));

@@ -22,7 +22,7 @@ public class MobPigeonRenderer extends MobRenderer<MobPigeon> {
 	@Override
 	protected @Nullable StaticEntityModel getAndSetupModelForLayer(@NotNull MobPigeon entity, float brightness, float partialTick, int layer) {
 		StaticEntityModel model = this.getModel("main");
-		this.bindTexture("/assets/paperwork/textures/entity/pigeon/" + entity.getTextureReference() + ".png");
+		this.bindTexture("/assets/paperwork/textures/entity/pigeon/" + entity.getTextureReference() + "1.png");
 
 		model.resetBones();
 		float limbSwing = this.getLimbSwing(entity, partialTick);

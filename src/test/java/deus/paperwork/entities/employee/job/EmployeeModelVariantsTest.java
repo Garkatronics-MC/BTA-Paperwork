@@ -15,93 +15,78 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// The models.json of the employees must know every model variant of every
-/// job, otherwise the renderer falls back to another model (or to the
-/// fallback model) at runtime, silently.
+/// The models.json of the employees must know the body of the employee and the
+/// accessory of every job, otherwise the renderer falls back to another model
+/// (or to the fallback model) at runtime, silently.
 ///
-/// The test reads the real file from the classpath, so a rename of a
-/// geometry or a missing variant fails here, not in the game.
+/// The test reads the real file from the classpath, so a rename of a geometry
+/// or a missing accessory fails here, not in the game.
 class EmployeeModelVariantsTest {
 
 	private static final String MODELS_PATH = "/assets/paperwork/models/entity/models.json";
 
-	/// The entry of models.json the employee renderer resolves its variants in.
+	/// The entry of models.json the employee renderer resolves its models in.
 	private static final String EMPLOYEE_ENTRY = "paperwork:employee";
 
 	/// The entry of the deprecated farmer entity, which stays for the old
 	/// saves.
 	private static final String FARMER_ENTRY = "paperwork:employee_farmer";
 
-	/// Every geometry of an employee starts with this prefix.
-	private static final String EMPLOYEE_GEOMETRY_PREFIX = "geometry.paperwork.employee";
+	/// The model of the body of every employee.
+	private static final String BODY_MODEL = "main";
+
+	/// The model of the bag of the farmer: the accessory of its job.
+	private static final String FARMER_BAG_MODEL = "farmer_bag";
 
 	@Test
-	void everyRegisteredJobHasBothVariants() {
+	void everyEmployeeHasTheBodyModel() {
 		JsonObject entry = employeeEntry();
 
-		for (EmployeeJob job : EmployeeJobs.all()) {
-			String manKey = job.modelVariant(false);
-			String womanKey = job.modelVariant(true);
-
-			assertTrue(entry.has(manKey), "models.json has no '" + manKey + "' variant for the job " + job.id());
-			assertTrue(entry.has(womanKey), "models.json has no '" + womanKey + "' variant for the job " + job.id());
-
-			assertTrue(entry.get(manKey).getAsString().startsWith(EMPLOYEE_GEOMETRY_PREFIX),
-				"The variant '" + manKey + "' of the job " + job.id() + " points to " + entry.get(manKey).getAsString());
-			assertTrue(entry.get(womanKey).getAsString().startsWith(EMPLOYEE_GEOMETRY_PREFIX),
-				"The variant '" + womanKey + "' of the job " + job.id() + " points to " + entry.get(womanKey).getAsString());
-		}
+		assertTrue(entry.has(BODY_MODEL), "models.json has no '" + BODY_MODEL + "' model");
+		assertEquals("geometry.paperwork.employee", entry.get(BODY_MODEL).getAsString());
 	}
 
 	@Test
-	void theTwoGendersOfAJobUseDifferentGeometries() {
+	void everyRegisteredJobHasItsAccessories() {
 		JsonObject entry = employeeEntry();
 
 		for (EmployeeJob job : EmployeeJobs.all()) {
-			String man = entry.get(job.modelVariant(false)).getAsString();
-			String woman = entry.get(job.modelVariant(true)).getAsString();
-			assertNotEquals(man, woman, "The job " + job.id() + " uses the same geometry for both genders");
+			for (EmployeeAccessory accessory : job.accessories()) {
+				assertTrue(entry.has(accessory.model()),
+					"models.json has no '" + accessory.model() + "' model for the job " + job.id());
+				assertTrue(entry.get(accessory.model()).getAsString().startsWith("geometry.paperwork."),
+					"The accessory '" + accessory.model() + "' of the job " + job.id()
+						+ " points to " + entry.get(accessory.model()).getAsString());
+			}
 		}
-	}
-
-	@Test
-	void thePlainJobPointsToTheEmployeeGeometries() {
-		JsonObject entry = employeeEntry();
-
-		assertEquals("geometry.paperwork.employee", entry.get("man").getAsString());
-		assertEquals("geometry.paperwork.employee_woman", entry.get("woman").getAsString());
 	}
 
 	/// The farmer job is registered by the mod initializer, which does not run
-	/// in the unit tests, so its variants are checked as plain strings.
+	/// in the unit tests, so its accessory is checked as a plain string.
 	@Test
-	void theFarmerVariantsAreDeclared() {
+	void theBagOfTheFarmerIsDeclared() {
 		JsonObject entry = employeeEntry();
 
-		assertTrue(entry.has("farmer_man"), "models.json has no 'farmer_man' variant");
-		assertTrue(entry.has("farmer_woman"), "models.json has no 'farmer_woman' variant");
-
-		assertEquals("geometry.paperwork.employee_farmer", entry.get("farmer_man").getAsString());
-		assertEquals("geometry.paperwork.employee_woman_farmer", entry.get("farmer_woman").getAsString());
+		assertTrue(entry.has(FARMER_BAG_MODEL), "models.json has no '" + FARMER_BAG_MODEL + "' model");
+		assertEquals("geometry.paperwork.accessories.farmer_bag", entry.get(FARMER_BAG_MODEL).getAsString());
 	}
 
 	/// The deprecated farmer entity keeps its own entry: its renderer resolves
-	/// the 'man' and 'woman' variants of it.
+	/// the models of it.
 	@Test
 	void theDeprecatedFarmerEntryIsStillThere() {
 		JsonObject renderers = renderers();
 		assertTrue(renderers.has(FARMER_ENTRY), "models.json has no '" + FARMER_ENTRY + "' entry");
 
 		JsonObject entry = renderers.get(FARMER_ENTRY).getAsJsonObject();
-		assertTrue(entry.has("man"), "'" + FARMER_ENTRY + "' has no 'man' variant");
-		assertTrue(entry.has("woman"), "'" + FARMER_ENTRY + "' has no 'woman' variant");
+		assertTrue(entry.has(BODY_MODEL), "'" + FARMER_ENTRY + "' has no '" + BODY_MODEL + "' model");
+		assertTrue(entry.has(FARMER_BAG_MODEL), "'" + FARMER_ENTRY + "' has no '" + FARMER_BAG_MODEL + "' model");
 
-		assertEquals("geometry.paperwork.employee_farmer", entry.get("man").getAsString());
-		assertEquals("geometry.paperwork.employee_woman_farmer", entry.get("woman").getAsString());
+		assertEquals("geometry.paperwork.employee", entry.get(BODY_MODEL).getAsString());
+		assertEquals("geometry.paperwork.accessories.farmer_bag", entry.get(FARMER_BAG_MODEL).getAsString());
 	}
 
 	/// Every geometry the employees use must be loaded: a geometry missing
@@ -109,22 +94,44 @@ class EmployeeModelVariantsTest {
 	@Test
 	void everyEmployeeGeometryIsLoaded() {
 		JsonObject entry = employeeEntry();
-		List<String> paths = modelPaths();
+		List<String> loaded = loadedGeometries();
 
 		for (String key : entry.keySet()) {
 			String geometry = entry.get(key).getAsString();
-			assertTrue(paths.contains(geoPathOf(geometry)), "The geometry " + geometry + " is not in the model paths");
+			assertTrue(loaded.contains(geometry), "The geometry " + geometry + " is not in the model paths");
 		}
+	}
+
+	/// The geometries that the loaded geo files declare.
+	private static List<String> loadedGeometries() {
+		List<String> geometries = new ArrayList<>();
+
+		for (String path : modelPaths()) {
+			try (InputStream stream = EmployeeModelVariantsTest.class.getResourceAsStream(path)) {
+				assertNotNull(stream, path + " is not on the classpath");
+				try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+					JsonObject geo = JsonParser.parseReader(reader).getAsJsonObject();
+					for (JsonElement element : geo.getAsJsonArray("minecraft:geometry")) {
+						geometries.add(element.getAsJsonObject()
+							.getAsJsonObject("description")
+							.get("identifier")
+							.getAsString());
+					}
+				}
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			}
+		}
+
+		return geometries;
 	}
 
 	@Test
 	void theModelPathsAreNotTouched() {
 		List<String> paths = modelPaths();
 
-		assertTrue(paths.contains("/assets/paperwork/models/entity/employee.geo.json"));
-		assertTrue(paths.contains("/assets/paperwork/models/entity/employee_woman.geo.json"));
-		assertTrue(paths.contains("/assets/paperwork/models/entity/employee_farmer.geo.json"));
-		assertTrue(paths.contains("/assets/paperwork/models/entity/employee_woman_farmer.geo.json"));
+		assertTrue(paths.contains("/assets/paperwork/models/entity/employee/employee.geo.json"));
+		assertTrue(paths.contains("/assets/paperwork/models/entity/employee/accessories/farmer_bag.geo.json"));
 	}
 
 	// ------------------------------------------------------------------ helpers
@@ -148,7 +155,7 @@ class EmployeeModelVariantsTest {
 		return models.get("renderers").getAsJsonObject();
 	}
 
-	/// The entry the employee renderer resolves its variants in.
+	/// The entry the employee renderer resolves its models in.
 	private static JsonObject employeeEntry() {
 		JsonObject renderers = renderers();
 		assertTrue(renderers.has(EMPLOYEE_ENTRY), "models.json has no '" + EMPLOYEE_ENTRY + "' entry");
@@ -165,13 +172,5 @@ class EmployeeModelVariantsTest {
 			paths.add(element.getAsString());
 		}
 		return paths;
-	}
-
-	/// The file of a geometry: "geometry.paperwork.employee" lives in
-	/// "/assets/paperwork/models/entity/employee.geo.json".
-	private static String geoPathOf(String geometry) {
-		assertTrue(geometry.startsWith("geometry.paperwork."), "Unexpected geometry: " + geometry);
-		String name = geometry.substring("geometry.paperwork.".length());
-		return "/assets/paperwork/models/entity/" + name + ".geo.json";
 	}
 }

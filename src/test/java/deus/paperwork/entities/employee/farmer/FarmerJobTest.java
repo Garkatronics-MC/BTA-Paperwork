@@ -1,5 +1,6 @@
 package deus.paperwork.entities.employee.farmer;
 
+import deus.paperwork.entities.employee.job.EmployeeAccessory;
 import deus.paperwork.entities.employee.job.EmployeeJobs;
 import deus.paperwork.entities.employee.job.EmployeeModelSpec.EmployeeBone;
 import org.junit.jupiter.api.DisplayName;
@@ -30,16 +31,13 @@ class FarmerJobTest {
 	}
 
 	@Test
-	@DisplayName("the model variant depends on the gender")
-	void modelVariantDependsOnTheGender() {
-		assertEquals("farmer_man", JOB.modelVariant(false));
-		assertEquals("farmer_woman", JOB.modelVariant(true));
-	}
+	@DisplayName("the farmer carries its bag")
+	void theFarmerCarriesItsBag() {
+		List<EmployeeAccessory> accessories = JOB.accessories();
 
-	@Test
-	@DisplayName("the textures live in the farmer folder")
-	void textureFolderIsEmployeeFarmer() {
-		assertEquals("employee_farmer", JOB.textureFolder());
+		assertEquals(1, accessories.size());
+		assertEquals("farmer_bag", accessories.get(0).model());
+		assertTrue(accessories.get(0).texture().endsWith("farmer_bag.png"));
 	}
 
 	@Test

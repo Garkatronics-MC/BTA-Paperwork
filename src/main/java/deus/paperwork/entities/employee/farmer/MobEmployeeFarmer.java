@@ -1,6 +1,7 @@
 package deus.paperwork.entities.employee.farmer;
 
 import deus.paperwork.entities.employee.MobEmployee;
+import deus.paperwork.entities.employee.MobEmployeeRenderer;
 import deus.paperwork.entities.employee.job.EmployeeJobs;
 import deus.utils.annotations.RegisterEntity;
 import deus.utils.annotations.RegisterEntityRenderer;
@@ -15,8 +16,10 @@ import org.jetbrains.annotations.NotNull;
 /// its only job is to force the farmer profession on them.
 ///
 /// It has no logic of its own: the brain, the stations, the recharge, the
-/// plot and the alert belong to the job.
-@RegisterEntityRenderer(renderer = MobEmployeeFarmerRenderer.class)
+/// plot and the alert belong to the job. It does not need a renderer of its
+/// own either: the employee renderer draws every job, and the entry of this
+/// entity in models.json holds the same models as the generic employee.
+@RegisterEntityRenderer(renderer = MobEmployeeRenderer.class)
 @RegisterEntity(id = "employee_farmer", name = "employee_farmer")
 @Deprecated
 public class MobEmployeeFarmer extends MobEmployee {

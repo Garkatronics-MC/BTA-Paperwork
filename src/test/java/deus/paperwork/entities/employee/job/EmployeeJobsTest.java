@@ -8,6 +8,7 @@ import deus.paperwork.entities.employee.model.EmployeeStations;
 import deus.paperwork.entities.employee.model.EmployeeTraits;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,13 +101,8 @@ class EmployeeJobsTest {
 		}
 
 		@Override
-		public String modelVariant(boolean isWoman) {
-			return "man";
-		}
-
-		@Override
-		public String textureFolder() {
-			return "employee";
+		public List<EmployeeAccessory> accessories() {
+			return List.of();
 		}
 
 		@Override

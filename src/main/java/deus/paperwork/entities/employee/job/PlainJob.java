@@ -8,6 +8,7 @@ import deus.paperwork.entities.employee.model.EmployeeStats;
 import deus.paperwork.entities.employee.model.EmployeeStations;
 import deus.paperwork.entities.employee.model.EmployeeTraits;
 
+import java.util.List;
 import java.util.Optional;
 
 /// The generic employee: no profession, no workplace, just the base life
@@ -22,14 +23,10 @@ public final class PlainJob implements EmployeeJob {
 		return EmployeeJobs.PLAIN_ID;
 	}
 
+	/// The plain employee has no accessory: it wears what every employee wears.
 	@Override
-	public String modelVariant(boolean isWoman) {
-		return isWoman ? "woman" : "man";
-	}
-
-	@Override
-	public String textureFolder() {
-		return "employee";
+	public List<EmployeeAccessory> accessories() {
+		return List.of();
 	}
 
 	/// The plain skeleton has no extra bones, so there is nothing to toggle.

@@ -12,7 +12,7 @@ public class EntityDonutRenderer extends EntityRendererDefault<EntityDonut> {
 
 	@Override
 	protected void loadTexture(EntityDonut entity) {
-		this.bindTexture("/assets/paperwork/textures/entity/donut/" + entity.getTextureReference() + ".png");
+		this.bindTexture("/assets/paperwork/textures/entity/donut/" + entity.getTextureReference() + "1.png");
 	}
 
 	@Override

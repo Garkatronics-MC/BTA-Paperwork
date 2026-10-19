@@ -7,11 +7,12 @@ import deus.paperwork.entities.employee.model.EmployeeStats;
 import deus.paperwork.entities.employee.model.EmployeeStations;
 import deus.paperwork.entities.employee.model.EmployeeTraits;
 
+import java.util.List;
 import java.util.Optional;
 
 /// A job is a strategy: it owns both faces of a profession - the server logic
 /// (extra station, recharge tick, own state, own alert) and the presentation
-/// (model variant, texture folder, which bones are shown or posed).
+/// (the accessory layers it adds, which bones are shown or posed).
 ///
 /// Jobs are singletons without state: everything mutable lives in the mob or
 /// in its {@link EmployeeJobState}. The id is a stable string ("plain",
@@ -25,13 +26,14 @@ public interface EmployeeJob {
 	/// Stable id of the job ("plain", "farmer"). Used in NBT and in synched data.
 	String id();
 
-	/// Model variant key inside models.json (the "paperwork:employee" entry) for that gender.
-	String modelVariant(boolean isWoman);
+	/// The accessory layers this job adds on top of the employee: its own
+	/// models (the bag of the farmer, ...) with the texture of each one.
+	///
+	/// Every employee shares the same base model, the same uniform and the same
+	/// hair; the job is what makes it look like its profession.
+	List<EmployeeAccessory> accessories();
 
-	/// Texture folder under /assets/paperwork/textures/entity/ ("employee", "employee_farmer").
-	String textureFolder();
-
-	/// Presentation data of this job's model (bones to show/hide, poses).
+	/// Presentation data of this job's own models (bones to show/hide, poses).
 	/// Computed from the mob; the job keeps no state of its own.
 	EmployeeModelSpec modelSpec(MobEmployee mob);
 

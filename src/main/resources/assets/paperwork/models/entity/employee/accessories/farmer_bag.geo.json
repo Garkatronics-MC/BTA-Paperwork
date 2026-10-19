@@ -1,0 +1,61 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.paperwork.accessories.farmer_bag",
+				"texture_width": 64,
+				"texture_height": 64,
+				"visible_bounds_width": 3,
+				"visible_bounds_height": 3.5,
+				"visible_bounds_offset": [0, 1.25, 0]
+			},
+			"bones": [
+				{
+					"name": "root",
+					"pivot": [0, 0, 0]
+				},
+				{
+					"name": "wheat_bag",
+					"parent": "root",
+					"pivot": [3, 19, 2],
+					"cubes": [
+						{"origin": [2, 13, 1], "size": [8, 8, 8], "pivot": [3, 19, 2], "rotation": [0, -90, 0], "uv": [0, 0]}
+					]
+				},
+				{
+					"name": "wheat1",
+					"parent": "wheat_bag",
+					"pivot": [3, 19, 2],
+					"cubes": [
+						{"origin": [-16, 16.75, 3.95], "size": [16, 16, 0], "pivot": [-1, 16.75, 2.95], "rotation": [-16.32495, 15.69986, 42.73421], "uv": [0, 32]}
+					]
+				},
+				{
+					"name": "wheat2",
+					"parent": "wheat_bag",
+					"pivot": [3, 19, 2],
+					"cubes": [
+						{"origin": [-15.25, 16, 5.8], "size": [16, 16, 0], "pivot": [-0.25, 16, 4.8], "rotation": [-31.45787, -9.07613, 28.65254], "uv": [0, 32]}
+					]
+				},
+				{
+					"name": "wheat3",
+					"parent": "wheat_bag",
+					"pivot": [3, 19, 2],
+					"cubes": [
+						{"origin": [-16, 18, 6], "size": [16, 16, 0], "pivot": [-1, 18, 5], "rotation": [-4.44498, 30.38769, 66.59555], "uv": [0, 32]}
+					]
+				},
+				{
+					"name": "seed_bag",
+					"parent": "root",
+					"pivot": [-5, 8, 0],
+					"cubes": [
+						{"origin": [-6, 2, -1], "size": [2, 8, 4], "pivot": [-5, 8, 0], "rotation": [22.5, 0, 0], "uv": [0, 16]}
+					]
+				}
+			]
+		}
+	]
+}

@@ -21,14 +21,8 @@ class PlainJobTest {
 	}
 
 	@Test
-	void modelVariantDependsOnTheGender() {
-		assertEquals("man", JOB.modelVariant(false));
-		assertEquals("woman", JOB.modelVariant(true));
-	}
-
-	@Test
-	void textureFolderIsEmployee() {
-		assertEquals("employee", JOB.textureFolder());
+	void thePlainJobHasNoAccessory() {
+		assertTrue(JOB.accessories().isEmpty());
 	}
 
 	@Test

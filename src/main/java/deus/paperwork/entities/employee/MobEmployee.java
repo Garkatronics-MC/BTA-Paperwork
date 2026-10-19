@@ -17,6 +17,11 @@ import deus.paperwork.entities.employee.model.EmployeeHudState;
 import deus.paperwork.entities.employee.model.EmployeeStats;
 import deus.paperwork.entities.employee.model.EmployeeStations;
 import deus.paperwork.entities.employee.model.EmployeeTraits;
+import deus.paperwork.interfaces.ICustomizable;
+import deus.paperwork.uniforms.HairPiece;
+import deus.paperwork.uniforms.HairStyle;
+import deus.paperwork.uniforms.UniformPiece;
+import deus.paperwork.uniforms.UniformShape;
 import deus.paperwork.util.PoscArea;
 import deus.paperwork.util.RenderUtils;
 import deus.utils.annotations.RegisterEntity;
@@ -36,7 +41,11 @@ import net.minecraft.core.world.pos.TilePosc;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /// The employee: a job agnostic mob whose profession is a strategy.
@@ -54,7 +63,22 @@ import java.util.Optional;
 /// loads.
 @RegisterEntityRenderer(renderer = MobEmployeeRenderer.class)
 @RegisterEntity(id = "employee", name = "employee")
-public class MobEmployee extends AgentMob implements IItemHolding {
+public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable {
+
+	/// The hair colour of every skin of the employee, by its texture reference.
+	private static final HashMap<String, Integer> skinToHairColor = new HashMap<>();
+
+	static {
+		skinToHairColor.put("0", 0xeb983f);
+		skinToHairColor.put("1", 0xffc752);
+		skinToHairColor.put("2", 0x24983f);
+		skinToHairColor.put("3", 0xde81b0);
+		skinToHairColor.put("4", 0xa95520);
+		skinToHairColor.put("5", 0x2ea2ba);
+		skinToHairColor.put("6", 0x36332f);
+		skinToHairColor.put("7", 0x040405);
+		skinToHairColor.put("8", 0x332411);
+	}
 
 	private static final int STRIKE_DAMAGE = 3;
 
@@ -75,6 +99,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	private static final int DATA_EMOTION         = 7;
 	private static final int DATA_PROGRESS        = 8;
 	private static final int DATA_INVENTORY_START = 9;
+	private static final int DATA_HAIR_STYLE      = 18;
 
 	/// The number of slots of the inventory of an employee.
 	public static final int INVENTORY_SIZE = 9;
@@ -98,15 +123,14 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// The last inventory contents sent to the clients, to send only what changed.
 	private final ItemStack[] syncedInventory = new ItemStack[INVENTORY_SIZE];
 
-	/// The job whose texture folder is currently applied on this side. The
-	/// client learns the job through the synched data, so it has to apply the
-	/// texture folder of the new job by itself.
-	private String appliedJobId = EmployeeJobs.PLAIN_ID;
-
 	// the workplace anchors, mirroring the old Optional fields; assign via
 	// assignFoodPlace / assignBed once the entity owns its places
 	public Optional<PoscArea.Area2D> food_place = Optional.empty();
 	public Optional<TilePosc> bed_position = Optional.empty();
+
+	// The look of the employee: the uniform pieces it wears and its hairstyle.
+	private final Map<UniformShape, UniformPiece> uniformPieces = new EnumMap<>(UniformShape.class);
+	private HairPiece hairPiece = null;
 
 	// HUD render state, mirrored from the synched data (the server publishes it)
 	public EmployeeAlert currentAlert = EmployeeAlert.GOOD;
@@ -115,13 +139,28 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 
 	public MobEmployee(@NotNull World world) {
 		super(world);
-		this.setTextureIdentifier("paperwork", job().textureFolder());
+		// Every employee wears the same textures now: the job adds layers on
+		// top of the model (the bag of the farmer), not a texture folder.
+		this.setTextureIdentifier("paperwork", "employee");
 		this.moveSpeed = MOVE_SPEED;
+
 		// The server owns the gender: it is rolled once, synced and persisted,
 		// so a world reload keeps it.
 		if (!this.world.isClientSide) {
 			this.setWoman(this.random.nextBoolean());
+
+			// The hairstyle is rolled by the server too, for the same reason:
+			// the client has to draw the same one.
+			HairStyle[] styles = Arrays.stream(HairStyle.values())
+				.filter(s -> s != HairStyle.NONE)
+				.toArray(HairStyle[]::new);
+			this.setHairStyle(styles[random.nextInt(styles.length)]);
 		}
+		applyHairStyle();
+
+		uniformPieces.put(UniformShape.SHIRT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
+		uniformPieces.put(UniformShape.HAT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
+		uniformPieces.put(UniformShape.PANTS, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
 	}
 
 	@Override
@@ -135,6 +174,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 		this.entityData.define(DATA_STATE, (byte) EmployeeStateIcons.GOOD.ordinal(), Byte.class);
 		this.entityData.define(DATA_EMOTION, (byte) EmployeeEmotions.HAPPY.ordinal(), Byte.class);
 		this.entityData.define(DATA_PROGRESS, (short) 0, Short.class);
+		this.entityData.define(DATA_HAIR_STYLE, (byte) HairStyle.NONE.ordinal(), Byte.class);
 		for (int i = 0; i < INVENTORY_SIZE; i++) {
 			this.entityData.define(DATA_INVENTORY_START + i, (ItemStack) null, ItemStack.class);
 		}
@@ -168,25 +208,6 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 		this.entityData.set(DATA_JOB_ID, newJob.id());
 		AgentResetter.reset(this);                        // the brain is rebuilt
 		this.jobState = newJob.createState();
-		applyJobTexture(newJob);
-	}
-
-	/// Points the texture of this employee at the folder of its job, so the
-	/// skin reference resolves against the variants.json of that folder.
-	private void applyJobTexture(EmployeeJob job) {
-		this.appliedJobId = job.id();
-		this.setTextureIdentifier("paperwork", job.textureFolder());
-	}
-
-	/// Keeps the texture folder in sync with the job. The server changes the job
-	/// through setJob, but the client learns about it through the synched data,
-	/// so both sides have to watch the job id.
-	private void syncJobTexture() {
-		String id = jobId();
-		if (id.equals(appliedJobId)) {
-			return;
-		}
-		applyJobTexture(job());
 	}
 
 	/// The mutable state of the job of this employee.
@@ -213,6 +234,62 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// Sets the gender of this employee.
 	public void setWoman(boolean isWoman) {
 		this.entityData.set(DATA_IS_WOMAN, (byte) (isWoman ? 1 : 0));
+	}
+
+	// ------------------------------------------------------------------ the look
+
+	/// The hairstyle of this employee. It is synced: the server rolls it once and
+	/// the client draws the same one, so the employee does not change its look
+	/// from one side to the other.
+	public HairStyle hairStyle() {
+		return hairStyleFromData(this.entityData.getByte(DATA_HAIR_STYLE));
+	}
+
+	/// Sets the hairstyle of this employee.
+	public void setHairStyle(HairStyle style) {
+		this.entityData.set(DATA_HAIR_STYLE, (byte) style.ordinal());
+	}
+
+	/// The hairstyle of the synced data. A value out of range means no hair.
+	static HairStyle hairStyleFromData(byte raw) {
+		HairStyle[] values = HairStyle.values();
+		int ordinal = raw & 0xFF;
+		return ordinal < values.length ? values[ordinal] : HairStyle.NONE;
+	}
+
+	/// The hairstyle whose hair piece is applied on this side.
+	private HairStyle appliedHairStyle = HairStyle.NONE;
+
+	/// Rebuilds the hair piece when the hairstyle changes (the client learns it
+	/// through the synched data).
+	private void applyHairStyle() {
+		HairStyle style = hairStyle();
+		if (hairPiece != null && style == appliedHairStyle) {
+			return;
+		}
+		appliedHairStyle = style;
+		hairPiece = new HairPiece(style, 0, skinToHairColor.get(this.getTextureReference()));
+	}
+
+	@Override
+	public @Nullable UniformPiece getUniformPiece(@NotNull UniformShape slot) {
+		return uniformPieces.get(slot);
+	}
+
+	@Override
+	public void setUniformPiece(@NotNull UniformShape slot, @Nullable UniformPiece piece) {
+		if (piece == null) uniformPieces.remove(slot);
+		else uniformPieces.put(slot, piece);
+	}
+
+	@Override
+	public @NotNull HairPiece getHairPiece() {
+		return hairPiece;
+	}
+
+	@Override
+	public void setHairPiece(@NotNull HairPiece piece) {
+		this.hairPiece = piece;
 	}
 
 	// ------------------------------------------------------------------ the brain
@@ -357,10 +434,10 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	@Override
 	public void onLivingUpdate() {
 		super.onLivingUpdate();
-		syncJobTexture();
 		if (!this.world.isClientSide) {
 			return;
 		}
+		applyHairStyle();
 		readSyncedInventory();
 		paintHud();
 	}
