@@ -7,4 +7,5 @@ public enum UniformShape {
 	SHIRT,
 	PANTS,
 	HAT,
+	GLASSES,
 }
