@@ -24,6 +24,12 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 
 	protected static final int HAIR_LAYER = UNIFORM_LAYERS.length + 1;
 
+	/// The hat has no art yet in the uniform textures (its region is black), so
+	/// the head keeps its own face until there is one. When the hat is drawn in
+	/// the textures, set this to true: the hat will then take the place of the
+	/// head, as the rest of the uniform does with the body.
+	private static final boolean HAT_HAS_ART = false;
+
 	public MobRendererUniformedDecorated(float shadowSize) {
 		super(shadowSize);
 	}
@@ -31,7 +37,9 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 	@Override
 	protected @Nullable StaticEntityModel getAndSetupModelForLayer(@NotNull T entity, float brightness, float partialTick, int layer) {
 		if (layer == 0) {
-			return super.getAndSetupModelForLayer(entity, brightness, partialTick, layer);
+			StaticEntityModel body = super.getAndSetupModelForLayer(entity, brightness, partialTick, layer);
+			hideCoveredBones(entity, body);
+			return body;
 		}
 
 		if (layer <= UNIFORM_LAYERS.length) {
@@ -43,6 +51,34 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 		}
 
 		return null;
+	}
+
+	/// The bones of the body that the uniform of the employee covers.
+	///
+	/// Every piece of the uniform is drawn exactly where the body part it
+	/// replaces is (the jacket on the torso, the sleeves on the arms, the
+	/// pants on the legs, the hat on the head), so the skin must not be drawn
+	/// under them: the two would fight for the same pixels and the employee
+	/// would look like a mess of flickering colours.
+	private void hideCoveredBones(@NotNull T entity, @Nullable StaticEntityModel body) {
+		if (body == null) {
+			return;
+		}
+
+		if (entity.getUniformPiece(UniformShape.SHIRT) != null) {
+			body.getTransform("torso").visible = false;
+			body.getTransform("rightArm").visible = false;
+			body.getTransform("leftArm").visible = false;
+		}
+
+		if (entity.getUniformPiece(UniformShape.PANTS) != null) {
+			body.getTransform("rightLeg").visible = false;
+			body.getTransform("leftLeg").visible = false;
+		}
+
+		if (HAT_HAS_ART && entity.getUniformPiece(UniformShape.HAT) != null) {
+			body.getTransform("head").visible = false;
+		}
 	}
 
 	private @Nullable StaticEntityModel setupUniformLayer(@NotNull T entity, float partialTick, int layer) {
@@ -97,26 +133,35 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 	}
 
 
-	private void applyUniformVisibility(@NotNull StaticEntityModel model, @NotNull UniformShape slot) {
-		model.getTransform("head").visible      = false;
-		model.getTransform("torso").visible     = false;
-		model.getTransform("rightArm").visible  = false;
-		model.getTransform("leftArm").visible   = false;
-		model.getTransform("rightLeg").visible  = false;
-		model.getTransform("leftLeg").visible   = false;
+	/// The bones of the uniform that belong to a piece: the jacket and the
+	/// sleeves of the shirt, the pants of the trousers, the hat of the hat.
+	///
+	/// The other pieces of the uniform are hidden: each one is drawn in its
+	/// own layer, and drawn again here they would pile up on the body (and
+	/// the trousers would show a cube at the feet of the employee).
+	private void applyUniformVisibility(@NotNull StaticEntityModel uniform, @NotNull UniformShape slot) {
+		uniform.getTransform("jacket").visible = false;
+		uniform.getTransform("rightSleeve").visible = false;
+		uniform.getTransform("leftSleeve").visible = false;
+		uniform.getTransform("hat").visible = false;
+		uniform.getTransform("rightPant").visible = false;
+		uniform.getTransform("leftPant").visible = false;
 
 		switch (slot) {
 			case SHIRT -> {
-				model.getTransform("torso").visible    = true;
-				model.getTransform("rightArm").visible = true;
-				model.getTransform("leftArm").visible  = true;
+				uniform.getTransform("jacket").visible = true;
+				uniform.getTransform("rightSleeve").visible = true;
+				uniform.getTransform("leftSleeve").visible = true;
 			}
 			case PANTS -> {
-				model.getTransform("rightLeg").visible = true;
-				model.getTransform("leftLeg").visible  = true;
+				uniform.getTransform("rightPant").visible = true;
+				uniform.getTransform("leftPant").visible = true;
 			}
-			case HAT, GLASSES -> {
-				model.getTransform("head").visible = true;
+			case HAT -> {
+				uniform.getTransform("hat").visible = HAT_HAS_ART;
+			}
+			case GLASSES -> {
+				// the glasses have no geometry yet
 			}
 		}
 	}
