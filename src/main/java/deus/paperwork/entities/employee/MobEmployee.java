@@ -317,14 +317,20 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 
 	/// The brain tick: server only. The client never runs the AI, it only
 	/// draws what the server publishes (see onLivingUpdate).
+	///
+	/// The order matters and it is the one of the old farmer: the base
+	/// recharge (food/rest), then the brain tick, and the recharge of the job
+	/// AFTER the brain. The planner has to see the same work drive it saw
+	/// before the refactor, so the job recharge cannot be added before the
+	/// brain evaluates it.
 	@Override
 	protected void updateAI() {
 		if (this.world.isClientSide) {
 			return;
 		}
-		rechargeAtStations();
-		job().recharge(this, stats());   // the recharge of the job, after the base one
-		super.updateAI();
+		rechargeAtStations();            // the base one (food/rest)
+		super.updateAI();                // the brain
+		job().recharge(this, stats());   // the one of the job, AFTER the brain
 		publishHudState();
 		syncInventory();
 	}
@@ -332,7 +338,7 @@ public class MobEmployee extends AgentMob implements IItemHolding {
 	/// Mirrors the old passive drain: standing at a station slowly pays the
 	/// matching deficit. The one-shot bite/sleep is handled by the tasks; this
 	/// is what makes the {@code rest} plan terminate off-shift. The recharge of
-	/// the job is added on top of this one (see updateAI).
+	/// the job is added on top of this one, after the brain tick (see updateAI).
 	protected void rechargeAtStations() {
 		if (food_place.isPresent() && near(food_place.get().center(), STATION_NEAR_RANGE)) {
 			stats.eat(NEAR_FOOD_RELIEF);
