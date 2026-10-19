@@ -1,17 +1,15 @@
 package deus.paperwork.item;
 
-import deus.brainless.Brainless;
 import deus.paperwork.Paperwork;
-import deus.paperwork.entities.employee.MobEmployee;
 import deus.paperwork.entities.employee.farmer.MobEmployeeFarmer;
 import deus.paperwork.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
-import net.minecraft.core.block.Blocks;
 import net.minecraft.core.entity.Mob;
 import net.minecraft.core.entity.player.Player;
 import net.minecraft.core.item.Item;
 import net.minecraft.core.item.ItemStack;
+import net.minecraft.core.net.command.TextFormatting;
 import net.minecraft.core.util.helper.Side;
 import net.minecraft.core.world.World;
 import net.minecraft.core.world.pos.TilePos;
@@ -42,14 +40,18 @@ public class FarmStick extends Item {
         if (player.isSneaking()) {
             pointB = pos;
             Paperwork.LOGGER.info("[FarmStick] Point B set: {}", pos);
+            say(player, TextFormatting.Base.YELLOW, "Farm area: point B set " + fmt(pos) + ".");
         } else {
             pointA = pos;
             pointB = null; // reset B on new A
             Paperwork.LOGGER.info("[FarmStick] Point A set: {}", pos);
+            say(player, TextFormatting.Base.YELLOW, "Farm area: point A set " + fmt(pos)
+                + " — sneak+click the opposite corner to finish the area.");
         }
 
         if (pointA != null && pointB != null) {
             Paperwork.LOGGER.info("[FarmStick] Area ready: {} -> {}", pointA, pointB);
+            say(player, TextFormatting.Base.GREEN, "Farm area ready — right-click a farmer to assign it.");
         }
 
         return true;
@@ -61,14 +63,29 @@ public class FarmStick extends Item {
 
         if (pointA == null || pointB == null) {
             Paperwork.LOGGER.info("[FarmStick] Area incomplete — set both points first (click A, shift+click B)");
+            if (!player.world.isClientSide) {
+                say(player, TextFormatting.Base.YELLOW, "Farm area incomplete — set both corners first (click A, sneak+click B).");
+            }
             return false;
         }
 
         farmer.farm_area = Optional.of(new PoscArea.Area2D(pointA, pointB));
         Paperwork.LOGGER.info("[FarmStick] Farm area assigned to farmer: {} -> {}", pointA, pointB);
 
+        if (!player.world.isClientSide) {
+            say(player, TextFormatting.Base.GREEN, "Farmer got a farm area " + fmt(pointA) + " -> " + fmt(pointB) + ".");
+        }
+
         pointA = null;
         pointB = null;
         return true;
+    }
+
+    private static String fmt(TilePosc pos) {
+        return pos.x() + "/" + pos.y() + "/" + pos.z();
+    }
+
+    private void say(Player player, TextFormatting.Base color, String message) {
+        player.sendMessage(color, "[Farm] " + message);
     }
 }
