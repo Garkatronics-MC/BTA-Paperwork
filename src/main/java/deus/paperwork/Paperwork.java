@@ -1,6 +1,8 @@
 package deus.paperwork;
 
 import deus.paperwork.block.PaperworkBlocks;
+import deus.paperwork.entities.employee.farmer.FarmerJob;
+import deus.paperwork.entities.employee.job.EmployeeJobs;
 import deus.paperwork.entities.pigeon.MobPigeon;
 import deus.paperwork.item.PaperworkItems;
 import deus.paperwork.util.PaperworkConfig;
@@ -33,6 +35,9 @@ public class Paperwork implements ModInitializer, GameStartEntrypoint {
 	public void onInitialize() {
 		PaperworkBlocks.initialize();
 		PaperworkItems.initialize();
+		// The farmer is a job: it is registered here (once, on both the client
+		// and the server) instead of being a class of mob.
+		EmployeeJobs.register(new FarmerJob());
 		EntityInitializer.initialize("deus.paperwork");
 
 		LOGGER.info("{} Core Initialized.", MOD_ID);

@@ -18,8 +18,6 @@ import net.minecraft.core.world.pos.TilePosc;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
-
 @RegisterItemModel(model = ItemModelStandard.class)
 public class EmployeeStick extends Item {
 
@@ -80,7 +78,7 @@ public class EmployeeStick extends Item {
 		boolean assigned = false;
 
 		if (pendingBed != null) {
-			employee.bed_position = Optional.of(pendingBed);
+			employee.assignBed(pendingBed);
 			Brainless.LOGGER.info("[Stick] Bed assigned to employee at {}", pendingBed);
 			if (!player.world.isClientSide) {
 				say(player, TextFormatting.Base.GREEN, "Employee got a bed at " + fmt(pendingBed) + ".");
@@ -90,7 +88,7 @@ public class EmployeeStick extends Item {
 		}
 
 		if (foodPointA != null && foodPointB != null) {
-			employee.food_place = Optional.of(new PoscArea.Area2D(foodPointA, foodPointB));
+			employee.assignFoodPlace(new PoscArea.Area2D(foodPointA, foodPointB));
 			Brainless.LOGGER.info("[Stick] Food area assigned to employee: {} -> {}", foodPointA, foodPointB);
 			if (!player.world.isClientSide) {
 				say(player, TextFormatting.Base.GREEN, "Employee got a food area " + fmt(foodPointA) + " -> " + fmt(foodPointB) + ".");
