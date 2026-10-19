@@ -33,7 +33,9 @@
     },
     "paperwork:employee": {
       "man": "geometry.paperwork.employee",
-      "woman": "geometry.paperwork.employee_woman"
+      "woman": "geometry.paperwork.employee_woman",
+      "farmer_man": "geometry.paperwork.employee_farmer",
+      "farmer_woman": "geometry.paperwork.employee_woman_farmer"
     },
     "paperwork:employee_farmer": {
       "man": "geometry.paperwork.employee_farmer",
