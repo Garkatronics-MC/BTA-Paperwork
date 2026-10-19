@@ -1,7 +1,9 @@
 package deus.paperwork.item;
 
 import deus.paperwork.Paperwork;
-import deus.paperwork.entities.employee.farmer.MobEmployeeFarmer;
+import deus.paperwork.entities.employee.MobEmployee;
+import deus.paperwork.entities.employee.farmer.FarmerJobState;
+import deus.paperwork.entities.employee.job.EmployeeJobs;
 import deus.paperwork.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
@@ -16,8 +18,6 @@ import net.minecraft.core.world.pos.TilePos;
 import net.minecraft.core.world.pos.TilePosc;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Optional;
 
 @RegisterItemModel(model = ItemModelStandard.class)
 public class FarmStick extends Item {
@@ -59,7 +59,7 @@ public class FarmStick extends Item {
 
     @Override
     public boolean useOnEntity(@NotNull ItemStack selfStack, @NotNull Player player, @NotNull Mob mob) {
-        if (!(mob instanceof MobEmployeeFarmer farmer)) return false;
+        if (!(mob instanceof MobEmployee employee)) return false;
 
         if (pointA == null || pointB == null) {
             Paperwork.LOGGER.info("[FarmStick] Area incomplete — set both points first (click A, shift+click B)");
@@ -69,7 +69,8 @@ public class FarmStick extends Item {
             return false;
         }
 
-        farmer.farm_area = Optional.of(new PoscArea.Area2D(pointA, pointB));
+        employee.setJob(EmployeeJobs.FARMER_ID);
+        employee.setJobState(FarmerJobState.withFarmArea(new PoscArea.Area2D(pointA, pointB)));
         Paperwork.LOGGER.info("[FarmStick] Farm area assigned to farmer: {} -> {}", pointA, pointB);
 
         if (!player.world.isClientSide) {
