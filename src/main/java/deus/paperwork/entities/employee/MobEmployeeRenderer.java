@@ -28,7 +28,16 @@ public class MobEmployeeRenderer extends MobRendererBiped<MobEmployee> {
 	/// The model of the employee: the variant of its job for its gender.
 	@Override
 	protected @Nullable StaticEntityModel getActiveModel(@NonNull MobEmployee mobEmployee) {
-		return this.getModel(mobEmployee.job().modelVariant(mobEmployee.isWoman()));
+		return this.getModel(modelVariant(mobEmployee));
+	}
+
+	/// The key of the model of an employee inside models.json.
+	///
+	/// The generic employee takes the variant of its job. The renderer of a
+	/// concrete entity (the deprecated farmer stub) overrides it, because its
+	/// models live under its own entity id, with its own keys.
+	protected String modelVariant(MobEmployee employee) {
+		return employee.job().modelVariant(employee.isWoman());
 	}
 
 	@Override
