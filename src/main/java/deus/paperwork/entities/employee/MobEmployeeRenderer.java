@@ -68,6 +68,8 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 		// is global, and the accessory must not come out with the colour of
 		// the hair of the employee.
 		GLRenderer.setColor3f(1.0f, 1.0f, 1.0f);
+		dbgOnce("bag:" + accessory.texture(), "bag-layer: tex=" + accessory.texture()
+			+ " model=" + accessory.model());
 
 		this.bindTexture(accessory.texture());
 

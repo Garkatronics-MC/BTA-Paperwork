@@ -1,9 +1,11 @@
 package deus.paperwork.uniforms;
 
+import deus.paperwork.Paperwork;
 import deus.paperwork.interfaces.ICustomizable;
 import net.minecraft.client.render.entity.MobRendererBiped;
 import net.minecraft.client.render.renderer.GLRenderer;
-import net.minecraft.client.render.tessellator.TessellatorGeneral;import net.minecraft.core.entity.Mob;
+import net.minecraft.client.render.tessellator.TessellatorGeneral;
+import net.minecraft.core.entity.Mob;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
@@ -13,6 +15,16 @@ import org.useless.dragonfly.models.entity.StaticEntityModel;
 
 public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizable>
 	extends MobRendererBiped<T> {
+
+	/// (debug temporal) combos de empleado ya logueados, para no spamear el log.
+	private static final java.util.Set<String> DBG_SEEN = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+	/// (debug temporal) marca de un combo para el log una sola vez.
+	protected static void dbgOnce(String key, String msg) {
+		if (DBG_SEEN.add(key)) {
+			Paperwork.LOGGER.info("[dbg] {}", msg);
+		}
+	}
 
 	private static final UniformShape[] UNIFORM_LAYERS = {
 		UniformShape.SHIRT,
@@ -121,6 +133,13 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 			float g = ((rgb >> 8)  & 0xFF) / 255.0f;
 			float b = ( rgb        & 0xFF) / 255.0f;
 			GLRenderer.setColor3f(r, g, b);
+			dbgOnce("hair-tint:" + rgb, "hf-layer: tint #"
+				+ Integer.toHexString(rgb)
+				+ " model=" + hairPiece.style().modelId
+				+ " hasTint=" + hairPiece.hasTint());
+		} else {
+			dbgOnce("hair-notint:" + hairPiece.style(), "hf-layer: NO tint, style="
+				+ hairPiece.style() + " tex=" + hairPiece.resolveTexture());
 		}
 
 		return model;
