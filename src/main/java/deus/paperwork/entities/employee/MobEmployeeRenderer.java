@@ -5,6 +5,7 @@ import deus.paperwork.entities.employee.job.EmployeeModelSpec;
 import deus.paperwork.entities.employee.job.client.EmployeeModelApplier;
 import deus.paperwork.uniforms.MobRendererUniformedDecorated;
 import net.minecraft.client.render.entity.MobRendererBiped;
+import net.minecraft.client.render.renderer.GLRenderer;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.useless.dragonfly.models.entity.StaticEntityModel;
@@ -62,6 +63,12 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 		}
 
 		EmployeeAccessory accessory = accessories.get(accessoryIndex);
+
+		// Undo the tint of the hair layer first: the colour of the GLRenderer
+		// is global, and the accessory must not come out with the colour of
+		// the hair of the employee.
+		GLRenderer.setColor3f(1.0f, 1.0f, 1.0f);
+
 		this.bindTexture(accessory.texture());
 
 		StaticEntityModel model = this.getModel(accessory.model());
