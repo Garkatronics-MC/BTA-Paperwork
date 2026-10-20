@@ -31,8 +31,8 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 	/// The layer of the hair. The accessories of the job come after it.
 	private static final int ACCESSORY_LAYER = HAIR_LAYER + 1;
 
-	/// The root of the textures of the entities.
-	private static final String TEXTURE_ROOT = "/assets/paperwork/textures/entity/";
+	/// The root of the textures of the entity skins.
+	private static final String TEXTURE_ROOT = "/assets/paperwork/textures/entity/employee/";
 
 	public MobEmployeeRenderer() {
 		super(0.3f);
