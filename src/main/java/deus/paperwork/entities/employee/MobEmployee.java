@@ -114,7 +114,6 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	private final EmployeeTraits traits = EmployeeTraits.random();
 	private final EmployeeStats stats = new EmployeeStats();
 	public final ContainerMob inventory = new ContainerMob("employee_inventory", INVENTORY_SIZE);
-	private final MobWorldAccess worldAccess = new MobWorldAccess(this, inventory);
 
 	/// The mutable state of the job of THIS employee (the fields a job needs per
 	/// mob). The job itself is a shared singleton and keeps no state.
@@ -582,17 +581,11 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 
 	/// Tiles listed by a 2D area at its anchor height.
 	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea) {
-		return worldAccess.getBlocksInArea(blockArea);
+		return MobWorldAccess.getBlocksInArea(blockArea);
 	}
 
 	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea, int id) {
-		return worldAccess.getBlocksInArea(blockArea, id);
-	}
-
-	/// The world access of this employee: the things around it and the
-	/// containers it can reach.
-	public MobWorldAccess worldAccess() {
-		return worldAccess;
+		return MobWorldAccess.getBlocksInArea(this.world, blockArea, id);
 	}
 
 	// ------------------------------------------------------------------ food
@@ -608,7 +601,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 			PoscArea.Area2D area = food_place.get();
 
 			for (TilePosc p : getBlocksInArea(area)) {
-				TileEntityChest chest = worldAccess.getChest(p);
+				TileEntityChest chest = MobWorldAccess.getChest(world, p);
 				if (chest == null || !hasFood(chest)) continue;
 
 				double dx = p.x() + 0.5 - mobX;
@@ -624,7 +617,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 
 		@Override
 		public boolean eatFrom(TilePosc spot) {
-			TileEntityChest chest = worldAccess.getChest(spot);
+			TileEntityChest chest = MobWorldAccess.getChest(world, spot);
 			if (chest == null) return false;
 
 			Optional<ItemStack> found = findFood(chest);

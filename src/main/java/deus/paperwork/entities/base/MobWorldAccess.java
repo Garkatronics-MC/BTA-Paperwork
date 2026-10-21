@@ -1,6 +1,5 @@
 package deus.paperwork.entities.base;
 
-import deus.paperwork.entities.base.ContainerMob;
 import deus.paperwork.util.PoscArea;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.Blocks;
@@ -20,37 +19,32 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
-public class MobWorldAccess {
+/// The way a mob touches the world: the tiles around it, the containers it can
+/// reach, and the items lying on the floor it can absorb. Named after the
+/// domain, not the role: any mob that holds an inventory can use it.
+///
+/// A stateless utility, not an entity component: every call passes the world
+/// (and the mob / inventory where needed), so it works for any mob without a
+/// per-entity instance. The caller that wires mob/inventory is the task driving
+/// the work.
+public final class MobWorldAccess {
 
-	protected Mob mob;
-	protected ContainerMob inventory;
+	private MobWorldAccess() {}
 
-	public MobWorldAccess(Mob mob, ContainerMob inventory) {
-		this.mob = mob;
-		this.inventory = inventory;
-	}
-
-
-	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea) {
+	public static List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea) {
 		return PoscArea.tiles(blockArea);
 	}
 
-	public List<TilePosc> getBlocksInArea(PoscArea.Area2D blockArea, int id) {
-		return getBlocksInArea(this.mob.world, blockArea, id);
-	}
-
-	/// Static so any mob can scan with a world in hand, no instance needed —
-	/// used directly by {@link deus.paperwork.entities.base.CropWorldAccess}.
 	public static List<TilePosc> getBlocksInArea(World world, PoscArea.Area2D blockArea, int id) {
 		return PoscArea.tiles(blockArea).stream()
 			.filter(p -> world.getBlockType(p).id() == id)
 			.toList();
 	}
 
-	public boolean openChest(TilePosc posc) {
-		Block<?> block = this.mob.world.getBlockType(posc);
+	public static boolean openChest(World world, TilePosc posc) {
+		Block<?> block = world.getBlockType(posc);
 		if (!block.isEntityTile() || block.id() != Blocks.CHEST_PLANKS_OAK.id()) return false;
-		TileEntityChest chest = (TileEntityChest) this.mob.world.getTileEntity(posc);
+		TileEntityChest chest = (TileEntityChest) world.getTileEntity(posc);
 
 		return true;
 	}
@@ -59,10 +53,10 @@ public class MobWorldAccess {
 	/// the mob, into its inventory.
 	///
 	/// The items that do not fit stay on the floor.
-	public void absorbNearbyItems(Item... items) {
+	public static void absorbNearbyItems(Mob mob, ContainerMob inventory, Item... items) {
 
 		AABBd box = MathHelper.aabbGrow(
-			this.mob.bb,
+			mob.bb,
 			3.0,
 			1.0,
 			3.0,
@@ -70,7 +64,7 @@ public class MobWorldAccess {
 		);
 
 		for (EntityItem entityItem :
-			this.mob.world.getEntitiesWithinAABB(EntityItem.class, box)) {
+			mob.world.getEntitiesWithinAABB(EntityItem.class, box)) {
 
 			if (!entityItem.isAlive()) {
 				continue;
@@ -92,13 +86,13 @@ public class MobWorldAccess {
 
 			int before = stack.stackSize;
 
-			this.inventory.insertItem(stack);
+			inventory.insertItem(stack);
 
 			if (stack.stackSize < before) {
 
-				this.mob.world.playSoundAtEntity(
+				mob.world.playSoundAtEntity(
 					null,
-					this.mob,
+					mob,
 					"item.pickup",
 					0.2F,
 					0.2F
@@ -119,12 +113,6 @@ public class MobWorldAccess {
 			}
 		}
 		return false;
-	}
-
-	/// Takes up to `amount` items of a kind from a chest into the inventory of
-	/// the mob. Returns how many were taken.
-	public int takeFromChest(TileEntityChest chest, Item item, int amount) {
-		return takeFromChest(this.inventory, chest, item, amount);
 	}
 
 	/// Takes up to `amount` items of a kind from a chest into an inventory.
@@ -173,7 +161,7 @@ public class MobWorldAccess {
 	}
 
 	@Nullable
-	public TilePos roamRandomPath(PoscArea.Area2D area, Random rng) {
+	public static TilePos roamRandomPath(World world, PoscArea.Area2D area, Random rng) {
 
 		int minX = Math.min(area.a().x(), area.b().x());
 		int maxX = Math.max(area.a().x(), area.b().x());
@@ -187,11 +175,11 @@ public class MobWorldAccess {
 			int x = minX + rng.nextInt(maxX - minX + 1);
 			int z = minZ + rng.nextInt(maxZ - minZ + 1);
 
-			if (!this.mob.world.isAirBlock(x, y, z)) {
+			if (!world.isAirBlock(x, y, z)) {
 				continue;
 			}
 
-			if (this.mob.world.isAirBlock(x, y - 1, z)) {
+			if (world.isAirBlock(x, y - 1, z)) {
 				continue;
 			}
 
@@ -201,7 +189,7 @@ public class MobWorldAccess {
 		return null;
 	}
 
-	public Optional<ItemStack> findItem(TileEntityChest chest, int itemId) {
+	public static Optional<ItemStack> findItem(TileEntityChest chest, int itemId) {
 		if (chest == null) return Optional.empty();
 		for (int i = 0; i < 27; i++) {
 			ItemStack stack = chest.getItem(i);
@@ -210,10 +198,9 @@ public class MobWorldAccess {
 		return Optional.empty();
 	}
 
-	public TileEntityChest getChest(TilePosc posc) {
-		Block<?> block = this.mob.world.getBlockType(posc);
+	public static TileEntityChest getChest(World world, TilePosc posc) {
+		Block<?> block = world.getBlockType(posc);
 		if (!block.isEntityTile() || (block.id() != Blocks.CHEST_PLANKS_OAK.id() && block.id() != Blocks.CHEST_PLANKS_OAK_PAINTED.id())) return null;
-		return (TileEntityChest) this.mob.world.getTileEntity(posc);
+		return (TileEntityChest) world.getTileEntity(posc);
 	}
 }
-

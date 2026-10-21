@@ -10,3 +10,4 @@ run-server/
 # into a commit once and blocked a merge, and .codegraph/ is a local index.
 logs/
 .codegraph/
+/_rasterizerTool/

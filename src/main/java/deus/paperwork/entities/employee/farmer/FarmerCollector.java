@@ -1,6 +1,7 @@
 package deus.paperwork.entities.employee.farmer;
 
 import deus.paperwork.Paperwork;
+import deus.paperwork.entities.base.MobWorldAccess;
 import deus.paperwork.entities.employee.MobEmployee;
 import deus.paperwork.util.PoscArea;
 import net.minecraft.core.block.entity.TileEntityChest;
@@ -45,7 +46,7 @@ public final class FarmerCollector {
 
 	/// Picks up the wheat and the seeds that are on the floor around the farmer.
 	private static void absorbFromFloor(MobEmployee mob) {
-		mob.worldAccess().absorbNearbyItems(GATHERED);
+		MobWorldAccess.absorbNearbyItems(mob, mob.inventory, GATHERED);
 	}
 
 	/// Takes seeds from a chest next to the farmer.
@@ -61,13 +62,13 @@ public final class FarmerCollector {
 		}
 
 		for (TilePosc pos : chestsAround(mob)) {
-			TileEntityChest chest = mob.worldAccess().getChest(pos);
+			TileEntityChest chest = MobWorldAccess.getChest(mob.world, pos);
 
 			if (chest == null) {
 				continue;
 			}
 
-			int taken = mob.worldAccess().takeFromChest(chest, Items.SEEDS_WHEAT, SEEDS_PER_TRIP);
+			int taken = MobWorldAccess.takeFromChest(mob.inventory, chest, Items.SEEDS_WHEAT, SEEDS_PER_TRIP);
 
 			if (taken > 0) {
 				Paperwork.LOGGER.info("[Farmer] took {} seeds from the chest at {}", taken, pos);
