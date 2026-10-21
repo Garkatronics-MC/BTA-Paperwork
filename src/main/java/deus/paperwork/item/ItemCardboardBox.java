@@ -1,8 +1,8 @@
 package deus.paperwork.item;
 
 import com.mojang.nbt.tags.CompoundTag;
-import deus.paperwork.entities.cardboard_box.BoxSize;
-import deus.paperwork.entities.cardboard_box.EntityCardboardBox;
+import deus.paperwork.entity.cardboard_box.BoxSize;
+import deus.paperwork.entity.cardboard_box.EntityCardboardBox;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.core.block.entity.TileEntity;

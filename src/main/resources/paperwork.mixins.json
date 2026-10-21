@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "deus.paperwork.mixin",
+  "package": "deus.paperwork.core.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "IAgentMob",

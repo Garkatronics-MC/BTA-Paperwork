@@ -1,6 +1,6 @@
 package deus.paperwork.item.big_paperplane;
 
-import deus.paperwork.entities.big_paperplane.EntityBigPaperPlane;
+import deus.paperwork.entity.big_paperplane.EntityBigPaperPlane;
 import deus.paperwork.item.base.ItemColored;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.core.entity.player.Player;

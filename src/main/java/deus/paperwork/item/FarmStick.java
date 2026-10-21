@@ -1,10 +1,10 @@
 package deus.paperwork.item;
 
 import deus.paperwork.Paperwork;
-import deus.paperwork.entities.employee.MobEmployee;
-import deus.paperwork.entities.employee.farmer.FarmerJobState;
-import deus.paperwork.entities.employee.job.EmployeeJobs;
-import deus.paperwork.util.PoscArea;
+import deus.paperwork.entity.employee.MobEmployee;
+import deus.paperwork.entity.employee.farmer.FarmerJobState;
+import deus.paperwork.entity.employee.job.EmployeeJobs;
+import deus.paperwork.core.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.core.entity.Mob;

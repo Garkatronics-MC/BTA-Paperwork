@@ -14,7 +14,7 @@ import org.jspecify.annotations.NonNull;
 
 import static deus.paperwork.Paperwork.MOD_ID;
 
-@RegisterEntity(id = "TileEntityPrinter", name = "TileEntityPrinter")
+@RegisterEntity(id = "entity_printer", name = "entity_printer")
 public class TileEntityPrinter extends TileEntity implements Container {
 
 	protected ItemStack[] itemStacks = new ItemStack[5];

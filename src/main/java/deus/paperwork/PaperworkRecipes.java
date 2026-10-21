@@ -51,7 +51,7 @@ public class PaperworkRecipes implements RecipeEntrypoint {
 //		RecipeBuilder.Shaped(MOD_ID)
 //			.setShape("ccc", "c c", "c c")
 //			.addInput('c', PaperworkItems.CARDBOARD)
-//			.create(MOD_ID+":armor_leggins_cardboard", PaperworkItems.ARMOR_LEGGINS_CARDBOARD.getDefaultStack());
+//			.create(MOD_ID+":armor_leggings_cardboard", PaperworkItems.ARMOR_LEGGINGS_CARDBOARD.getDefaultStack());
 //
 //		RecipeBuilder.Shaped(MOD_ID)
 //			.setShape("   ", "c c", "c c")
@@ -166,7 +166,7 @@ public class PaperworkRecipes implements RecipeEntrypoint {
 //			.addInput('S', Items.INGOT_STEEL)
 //			.addInput('I', Items.INGOT_IRON)
 //			.addInput('N', PaperworkItems.IRON_NUGGET)
-//			.create(MOD_ID+":stepler", PaperworkItems.STEPLER);
+//			.create(MOD_ID+":stapler", PaperworkItems.STEPLER);
 //
 //		RecipeBuilder.Shaped(MOD_ID)
 //			.setShape(

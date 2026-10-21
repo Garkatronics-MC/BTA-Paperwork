@@ -1,8 +1,8 @@
 package deus.paperwork.item;
 
 import deus.brainless.Brainless;
-import deus.paperwork.entities.employee.MobEmployee;
-import deus.paperwork.util.PoscArea;
+import deus.paperwork.entity.employee.MobEmployee;
+import deus.paperwork.core.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.core.block.Blocks;

@@ -17,7 +17,7 @@ tile.paperwork.cardboard_layer.name=Cardboard Layer
 tile.paperwork.cardboard_box.name=Cardboard Box
 tile.paperwork.printer.name=Printer
 tile.paperwork.photocopier.name=Photocopier
-tile.paperwork.corckboard.name=Cork Board
+tile.paperwork.corkboard.name=Cork Board
 tile.paperwork.chalkboard.name=Chalk Board
 tile.paperwork.file_cabinet_browk_planks.name=Brown Planks File Cabinet
 tile.paperwork.file_cabinet_iron.name=Iron File Cabinet
@@ -35,7 +35,7 @@ item.cardboard_tube.name=Cardboard Tube
 # Cardboard Armor
 item.armor_helmet_cardboard.name=Cardboard Helmet
 item.armor_chestplate_cardboard.name=Cardboard Chestplate
-item.armor_leggins_cardboard.name=Cardboard Leggings
+item.armor_leggings_cardboard.name=Cardboard Leggings
 item.armor_boots_cardboard.name=Cardboard Boots
 
 # Paper Items
@@ -51,7 +51,7 @@ item.cardboard_box_regular.name=Regular Cardboard Box
 # Misc Items
 item.paperwork.closed_letter.name=Closed Letter
 item.paperwork.letter.name=Letter
-item.paperwork.stepler.name=Stepler
+item.paperwork.stapler.name=Stapler
 item.iron_nugget.name=Iron Nugget
 item.pencil.name=Pencil
 

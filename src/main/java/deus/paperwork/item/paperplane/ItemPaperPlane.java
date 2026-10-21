@@ -1,6 +1,6 @@
 package deus.paperwork.item.paperplane;
 
-import deus.paperwork.entities.paperplane.EntityPaperPlane;
+import deus.paperwork.entity.paperplane.EntityPaperPlane;
 import deus.paperwork.item.base.ItemColored;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;

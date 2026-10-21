@@ -24,7 +24,7 @@ public class PaperworkModelEntrypoint implements ModelEntrypoint {
 	@Override
 	public void initEntityModels(EntityRendererDispatcher dispatcher) {
 		Paperwork.LOGGER.info("Initializing models...");
-		EntityModelInitializer.initialize("deus.paperwork.entities", dispatcher);
+		EntityModelInitializer.initialize("deus.paperwork.entity", dispatcher);
 
 	}
 

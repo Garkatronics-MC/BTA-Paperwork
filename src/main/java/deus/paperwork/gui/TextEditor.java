@@ -1,6 +1,6 @@
 package deus.paperwork.gui;
 
-import deus.paperwork.util.Signal;
+import deus.paperwork.core.util.Signal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import org.lwjgl.input.Keyboard;
@@ -8,7 +8,6 @@ import org.lwjgl.input.Mouse;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  *

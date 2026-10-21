@@ -1,6 +1,6 @@
 package deus.paperwork.block.confetti;
 
-import deus.paperwork.other.PaperworkMaterials;
+import deus.paperwork.registry.PaperworkMaterials;
 import net.minecraft.core.block.Block;
 import net.minecraft.core.block.BlockLogic;
 import net.minecraft.core.block.entity.TileEntity;

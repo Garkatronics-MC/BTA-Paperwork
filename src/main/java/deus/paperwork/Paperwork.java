@@ -1,21 +1,14 @@
 package deus.paperwork;
 
-import deus.paperwork.block.PaperworkBlocks;
-import deus.paperwork.entities.employee.farmer.FarmerJob;
-import deus.paperwork.entities.employee.job.EmployeeJobs;
-import deus.paperwork.entities.pigeon.MobPigeon;
-import deus.paperwork.item.PaperworkItems;
-import deus.paperwork.util.PaperworkConfig;
+import deus.paperwork.registry.PaperworkBlocks;
+import deus.paperwork.entity.employee.farmer.FarmerJob;
+import deus.paperwork.entity.employee.job.EmployeeJobs;
+import deus.paperwork.registry.PaperworkItems;
+import deus.paperwork.core.util.PaperworkConfig;
 import deus.utils.initializers.EntityInitializer;
-import deus.utils.react.React;
-import deus.utils.react.State;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.client.render.texture.stitcher.IconCoordinate;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
-import net.minecraft.core.entity.EntityDispatcher;
-import net.minecraft.core.entity.animal.MobDeer;
-import net.minecraft.core.sound.SoundTypes;
-import net.minecraft.core.util.collection.NamespaceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import turniplabs.halplibe.HalpLibe;

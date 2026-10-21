@@ -1,7 +1,7 @@
 package deus.paperwork.item.base;
 
 
-import deus.paperwork.interfaces.IPlaceable;
+import deus.paperwork.core.api.IPlaceable;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.core.entity.Entity;

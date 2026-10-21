@@ -1,7 +1,7 @@
 package deus.paperwork.entities.employee.farmer;
 
 import com.mojang.nbt.tags.CompoundTag;
-import deus.paperwork.util.PoscArea;
+import deus.paperwork.core.util.PoscArea;
 import net.minecraft.core.world.pos.TilePos;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

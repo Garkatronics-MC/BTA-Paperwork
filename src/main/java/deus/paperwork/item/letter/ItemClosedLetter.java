@@ -1,7 +1,7 @@
 package deus.paperwork.item.letter;
 
 import com.mojang.nbt.tags.CompoundTag;
-import deus.paperwork.item.PaperworkItems;
+import deus.paperwork.registry.PaperworkItems;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
 import net.minecraft.core.entity.player.Player;
