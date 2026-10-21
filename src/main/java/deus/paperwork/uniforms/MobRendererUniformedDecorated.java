@@ -1,5 +1,6 @@
 package deus.paperwork.uniforms;
 
+import deus.paperwork.Paperwork;
 import deus.paperwork.interfaces.ICustomizable;
 import net.minecraft.client.render.entity.MobRendererBiped;
 import net.minecraft.client.render.renderer.GLRenderer;
@@ -14,6 +15,16 @@ import org.useless.dragonfly.models.entity.StaticEntityModel;
 
 public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizable>
 	extends MobRendererBiped<T> {
+
+	/// (debug temporal) combos de empleado ya logueados, para no spamear el log.
+	private static final java.util.Set<String> DBG_SEEN = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+	/// (debug temporal) marca de un combo para el log una sola vez.
+	protected static void dbgOnce(String key, String msg) {
+		if (DBG_SEEN.add(key)) {
+			Paperwork.LOGGER.info("[dbg] {}", msg);
+		}
+	}
 
 	private static final UniformShape[] UNIFORM_LAYERS = {
 		UniformShape.SHIRT,
@@ -122,6 +133,13 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 			float g = ((rgb >> 8)  & 0xFF) / 255.0f;
 			float b = ( rgb        & 0xFF) / 255.0f;
 			GLRenderer.setColor3f(r, g, b);
+			dbgOnce("hair-tint:" + rgb, "hf-layer: tint #"
+				+ Integer.toHexString(rgb)
+				+ " model=" + hairPiece.style().modelId
+				+ " hasTint=" + hairPiece.hasTint());
+		} else {
+			dbgOnce("hair-notint:" + hairPiece.style(), "hf-layer: NO tint, style="
+				+ hairPiece.style() + " tex=" + hairPiece.resolveTexture());
 		}
 
 		return model;
@@ -180,5 +198,20 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 	@Override
 	protected int maxRenderLayer(@NotNull T entity) {
 		return HAIR_LAYER;
+	}
+
+	/// The hair tint is a global state of the GLRenderer (like the wool of the
+	/// sheep), and nothing in the base loop restores it: after this entity is
+	/// drawn, whatever the game draws next would come out with the colour of
+	/// the hair (the "black box" bug). So the white is restored as soon as the
+	/// render of the entity is done.
+	@Override
+	public void render(@NotNull TessellatorGeneral tessellator, @NotNull T entity,
+					   double x, double y, double z, float entityYaw, float partialTick) {
+		try {
+			super.render(tessellator, entity, x, y, z, entityYaw, partialTick);
+		} finally {
+			GLRenderer.setColor3f(1.0f, 1.0f, 1.0f);
+		}
 	}
 }

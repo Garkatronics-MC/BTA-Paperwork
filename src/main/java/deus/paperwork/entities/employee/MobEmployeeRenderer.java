@@ -5,6 +5,7 @@ import deus.paperwork.entities.employee.job.EmployeeModelSpec;
 import deus.paperwork.entities.employee.job.client.EmployeeModelApplier;
 import deus.paperwork.uniforms.MobRendererUniformedDecorated;
 import net.minecraft.client.render.entity.MobRendererBiped;
+import net.minecraft.client.render.renderer.GLRenderer;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.useless.dragonfly.models.entity.StaticEntityModel;
@@ -31,8 +32,8 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 	/// The layer of the hair. The accessories of the job come after it.
 	private static final int ACCESSORY_LAYER = HAIR_LAYER + 1;
 
-	/// The root of the textures of the entities.
-	private static final String TEXTURE_ROOT = "/assets/paperwork/textures/entity/";
+	/// The root of the textures of the entity skins.
+	private static final String TEXTURE_ROOT = "/assets/paperwork/textures/entity/employee/";
 
 	public MobEmployeeRenderer() {
 		super(0.3f);
@@ -62,6 +63,14 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 		}
 
 		EmployeeAccessory accessory = accessories.get(accessoryIndex);
+
+		// Undo the tint of the hair layer first: the colour of the GLRenderer
+		// is global, and the accessory must not come out with the colour of
+		// the hair of the employee.
+		GLRenderer.setColor3f(1.0f, 1.0f, 1.0f);
+		dbgOnce("bag:" + accessory.texture(), "bag-layer: tex=" + accessory.texture()
+			+ " model=" + accessory.model());
+
 		this.bindTexture(accessory.texture());
 
 		StaticEntityModel model = this.getModel(accessory.model());

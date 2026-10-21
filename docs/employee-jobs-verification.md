@@ -103,6 +103,7 @@
 | 7.2 | una pieza por capa | mira al empleado | la chaqueta, las mangas y los pantalones se ven **una** vez cada uno, no apilados | ☐ |
 | 7.3 | sin cubo en los pies | mira las piernas | no hay un cubo extra en los pies (eran los pantalones del uniforme, dibujados 4 veces) | ☐ |
 | 7.4 | la cara se ve | mira al empleado de frente | se ve la cara (el gorro del uniforme todavia no tiene arte) | ☐ |
+| 7.6 | el pelo se ve | mira al empleado desde arriba | el pelo se dibuja con su textura (antes se veia un cubo gris gigante: la textura no cargaba y el cubo 8.5 salia de la grilla) | ☐ |
 | 7.5 | sin uniforme | quita una pieza de uniforme | la parte del cuerpo que tapa esa pieza vuelve a verse (la piel) | ☐ |
 
 ## 8. Extra: regresiones
