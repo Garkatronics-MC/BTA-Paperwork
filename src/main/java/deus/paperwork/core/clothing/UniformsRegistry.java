@@ -29,7 +29,7 @@ public final class UniformsRegistry {
 		"geometry.paperwork.uniform.hat",
 		null,
 		1,
-		false
+		true
 	);
 
 	public static final UniformPiece GLASSES = new UniformPiece(
@@ -40,7 +40,9 @@ public final class UniformsRegistry {
 		false
 	);
 
-	/**  to be visible at the same time. Uses texture base path for variants. */
+	/** Hair uniform piece: employee hair.
+	 *  Can overlap with other pieces (e.g. hats), allowing both hair and hat
+	 *  to be visible at the same time. Uses texture base path for variants. */
 	public static final UniformPiece HAIR = new UniformPiece(
 		"/assets/paperwork/textures/entity/employee/hair.png",
 		"geometry.paperwork.hair",
