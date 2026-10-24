@@ -28,10 +28,16 @@ repositories {
 	}
 	maven("https://maven.fabricmc.net/") { name = "Fabric" }
 	maven("https://maven.danygames2014.net/signalum") { name = "SignalumMavenMirror1" }
-	maven("https://maven.thesignalumproject.net/infrastructure") { name = "SignalumMavenInfrastructure" }
-	maven("https://maven.thesignalumproject.net/releases") { name = "SignalumMavenReleases" }
-	maven("https://maven.thesignalumproject.net/nightly") { name = "SignalumMavenNightly" }
-	maven("https://jitpack.io") { name = "JitPack" }
+	exclusiveContent {
+		forRepository {
+			maven("https://jitpack.io") {
+				name = "JitPack"
+			}
+		}
+		filter {
+			includeModule("com.github.Garkatronics-MC", "BTA-Brainless")
+		}
+	}
 }
 
 dependencies {
@@ -126,7 +132,11 @@ tasks {
 		languageVersion = libs.versions.gradleJava.map { JavaLanguageVersion.of(it.toInt()) }
 		vendor = JvmVendorSpec.ADOPTIUM
 	}
-	withType<JavaExec>().configureEach { defaultCharacterEncoding = "UTF-8" }
+	withType<JavaExec>().configureEach {
+	defaultCharacterEncoding = "UTF-8"
+		// GLFW con soporte Wayland (lo exporta el devShell de nix)
+		System.getenv("BTA_GLFW_LIB")?.let { systemProperty("org.lwjgl.glfw.libname", it) }
+	}
 	withType<Javadoc>().configureEach { options.encoding = "UTF-8" }
 	withType<Test>().configureEach {
 		defaultCharacterEncoding = "UTF-8"

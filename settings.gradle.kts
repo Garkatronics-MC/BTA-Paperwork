@@ -47,7 +47,6 @@ pluginManagement {
 				)
 			)
 		) { name = "Fabric" }
-		maven("https://maven.thesignalumproject.net/infrastructure") { name = "SignalumMavenInfrastructure" }
 	}
 	val foojayResolverVersion = providers.gradleProperty("foojay_resolver_version")
 	plugins {

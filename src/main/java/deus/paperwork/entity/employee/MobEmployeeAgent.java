@@ -22,6 +22,7 @@ import deus.brainless.task.Task;
 import deus.brainless.task.TaskFactory;
 import deus.brainless.task.Tasks;
 import deus.brainless.utils.Timer;
+import deus.paperwork.core.ai.PaperworkDrives;
 import deus.paperwork.core.ai.tasks.Consume;
 import deus.paperwork.core.ai.tasks.Goto;
 import deus.paperwork.core.ai.tasks.Stay;
@@ -159,7 +160,19 @@ public final class MobEmployeeAgent {
 				.sub("danger", 0.5)
 				.sigmoid(6)
 				.onHigh(Drives.FATIGUE);
+
+			layer.mix("desire_work")
+				.add("work", 1.0)
+				.add("trait_hardworking", 0.6)
+				.add("health", 0.2)
+				.sub("hunger", 0.9)
+				.sub("fatigue", 0.4)
+				.sub("danger", 0.7)
+				.sub("social", 0.2)
+				.sigmoid(5)
+				.onHigh(PaperworkDrives.WORK);
 		});
+
 
 		return t;
 	}

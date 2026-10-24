@@ -24,7 +24,7 @@ public class PaperworkClient implements ClientStartEntrypoint, ClientModInitiali
 			TextureRegistry.initializeAllFiles(MOD_ID, TextureRegistry.guiSpriteAtlas, true);
 			TextureRegistry.initializeAllFiles(MOD_ID, TextureRegistry.worldAtlas, true);
 		} catch (Exception var2) {
-			LOGGER.warn(MOD_ID+": Failed to fully initialize assets, some issue may occur!", var2);
+			LOGGER.warn("{}: Failed to fully initialize assets, some issue may occur!", MOD_ID, var2);
 		}
 	}
 

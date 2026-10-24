@@ -70,11 +70,11 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 			return;
 		}
 
-		if (entity.getUniformPiece(UniformShape.SHIRT) != null) {
+		/* if (entity.getUniformPiece(UniformShape.SHIRT) != null) {
 			body.getTransform("torso").visible = false;
 			body.getTransform("rightArm").visible = false;
 			body.getTransform("leftArm").visible = false;
-		}
+		} */
 
 		if (entity.getUniformPiece(UniformShape.PANTS) != null) {
 			body.getTransform("rightLeg").visible = false;
@@ -83,9 +83,9 @@ public abstract class MobRendererUniformedDecorated<T extends Mob & ICustomizabl
 
 		// Hide head only if hat doesn't overlap (i.e., hat covers hair)
 		// If hat.overlaps() is true, hair can be visible under the hat
-		if (entity.getUniformPiece(UniformShape.HAT) != null && !entity.getUniformPiece(UniformShape.HAT).overlaps()) {
+		/* if (entity.getUniformPiece(UniformShape.HAT) != null && !entity.getUniformPiece(UniformShape.HAT).overlaps()) {
 			body.getTransform("head").visible = false;
-		}
+		} */
 	}
 
 	private @Nullable StaticEntityModel setupUniformLayer(@NotNull T entity, float partialTick, int layer) {

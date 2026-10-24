@@ -13,6 +13,7 @@ import deus.brainless.limbic.Psyche;
 import deus.brainless.limbic.Temperament;
 import deus.brainless.task.TaskFactory;
 import deus.brainless.utils.Timer;
+import deus.paperwork.core.ai.PaperworkDrives;
 import deus.paperwork.core.ai.tasks.Goto;
 import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.MobEmployeeAgent;
@@ -29,8 +30,6 @@ import java.util.Optional;
 /// The drive and the planner are the ones the farmer has always had: this is
 /// a move, not a rebalance.
 public final class FarmerAgent {
-
-	public static final Drive WORK = Drive.of("work");
 
 	private static final Temperament TEMPERAMENT = buildTemperament();
 	private static final GoapPlanner PLANNER = buildPlanner();
@@ -72,17 +71,7 @@ public final class FarmerAgent {
 		// --- the work drive (the old EmployeeAI.desire_work, ported) ---
 		// eagerness to work, fed by the `work` deficit and hardworking nature,
 		// damped by lower needs: a hungry, tired or scared farmer won't farm.
-		t.layer("drives", layer ->
-			layer.mix("desire_work")
-				.add("work", 1.0)
-				.add("trait_hardworking", 0.6)
-				.add("health", 0.2)
-				.sub("hunger", 0.9)
-				.sub("fatigue", 0.4)
-				.sub("danger", 0.7)
-				.sub("social", 0.2)
-				.sigmoid(5)
-				.onHigh(WORK));
+		
 
 		return t;
 	}
@@ -106,7 +95,7 @@ public final class FarmerAgent {
 			Optional<Goal> goal = MobEmployeeAgent.employeeGoals().goalFor(drive, world);
 			if (goal.isPresent()) return goal;
 
-			if (drive == WORK) {
+			if (drive == PaperworkDrives.WORK) {
 				goal = Optional.of(Goal.of(s -> s.get("farmed") >= 1f, world));
 			}
 			return goal;

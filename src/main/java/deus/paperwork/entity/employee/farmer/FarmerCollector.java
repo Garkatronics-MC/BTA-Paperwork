@@ -31,7 +31,7 @@ public final class FarmerCollector {
 	private static final int CHEST_SEARCH_INTERVAL = 20;
 
 	/// How far (in blocks) the farmer looks for a chest.
-	private static final int CHEST_RADIUS = 2;
+	private static final int CHEST_RADIUS = 6;
 
 	private FarmerCollector() {}
 

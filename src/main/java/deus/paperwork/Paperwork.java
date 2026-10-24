@@ -1,6 +1,7 @@
 package deus.paperwork;
 
 import deus.paperwork.registry.PaperworkBlocks;
+import deus.paperwork.entity.employee.chef.ChefJob;
 import deus.paperwork.entity.employee.farmer.FarmerJob;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.registry.PaperworkItems;
@@ -31,6 +32,8 @@ public class Paperwork implements ModInitializer, GameStartEntrypoint {
 		// The farmer is a job: it is registered here (once, on both the client
 		// and the server) instead of being a class of mob.
 		EmployeeJobs.register(new FarmerJob());
+		// The chef is a job: same registration pattern as the farmer.
+		EmployeeJobs.register(new ChefJob());
 		EntityInitializer.initialize("deus.paperwork");
 
 		LOGGER.info("{} Core Initialized.", MOD_ID);
