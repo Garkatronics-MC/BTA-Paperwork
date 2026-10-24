@@ -27,7 +27,8 @@ public final class CropWorldAccess {
 	private CropWorldAccess() {}
 
 	public static List<TilePosc> getSowableBlocksInArea(Mob mob, PoscArea.Area2D blockArea) {
-		return MobWorldAccess.getBlocksInArea(mob.world, blockArea, Blocks.FARMLAND_DIRT.id()).stream()
+		return MobWorldAccess.getBlocksInArea3D(blockArea).stream()
+			.filter(p -> mob.world.getBlockType(p).id() == Blocks.FARMLAND_DIRT.id())
 			.filter(p -> {
 				TilePosc above = new TilePos(p.x(), p.y() + 1, p.z());
 				return mob.world.getBlockType(above).id() == Blocks.AIR.id();
@@ -36,7 +37,7 @@ public final class CropWorldAccess {
 	}
 
 	public static List<TilePosc> getHarvestableBlocksInArea(Mob mob, PoscArea.Area2D blockArea) {
-		return PoscArea.tiles(blockArea).stream()
+		return MobWorldAccess.getBlocksInArea3D(blockArea).stream()
 			.filter(posc -> isHarvestable(mob, new TilePos(posc.x(), posc.y() + 1, posc.z())))
 			.toList();
 	}

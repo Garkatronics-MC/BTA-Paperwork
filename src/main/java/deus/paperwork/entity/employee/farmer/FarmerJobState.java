@@ -37,7 +37,7 @@ public class FarmerJobState extends EmployeeJobState {
 
 	/// A fresh state with a plot already assigned.
 	///
-	/// This is what the FarmStick uses to hand a plot over to an employee
+	/// Used by the employee stick to hand a plot over to an employee
 	/// that just became a farmer.
 	public static FarmerJobState withFarmArea(PoscArea.Area2D area) {
 		FarmerJobState state = new FarmerJobState();

@@ -15,6 +15,7 @@ import net.minecraft.core.world.pos.TilePosc;
 import org.jetbrains.annotations.Nullable;
 import org.joml.primitives.AABBd;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -39,6 +40,27 @@ public final class MobWorldAccess {
 		return PoscArea.tiles(blockArea).stream()
 			.filter(p -> world.getBlockType(p).id() == id)
 			.toList();
+	}
+
+	/// Enumerates every tile inside the area across all Y levels between the
+	/// two corners (unlike {@link PoscArea#tiles} which uses a single Y).
+	public static List<TilePosc> getBlocksInArea3D(PoscArea.Area2D blockArea) {
+		int minX = Math.min(blockArea.a().x(), blockArea.b().x());
+		int maxX = Math.max(blockArea.a().x(), blockArea.b().x());
+		int minZ = Math.min(blockArea.a().z(), blockArea.b().z());
+		int maxZ = Math.max(blockArea.a().z(), blockArea.b().z());
+		int minY = Math.min(blockArea.a().y(), blockArea.b().y());
+		int maxY = Math.max(blockArea.a().y(), blockArea.b().y());
+
+		List<TilePosc> tiles = new ArrayList<>();
+		for (int y = minY; y <= maxY; y++) {
+			for (int x = minX; x <= maxX; x++) {
+				for (int z = minZ; z <= maxZ; z++) {
+					tiles.add(new TilePos(x, y, z));
+				}
+			}
+		}
+		return tiles;
 	}
 
 	public static boolean openChest(World world, TilePosc posc) {

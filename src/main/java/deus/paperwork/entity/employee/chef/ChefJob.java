@@ -12,6 +12,9 @@ import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
 import deus.paperwork.core.util.PoscArea;
+import deus.paperwork.entity.base.MobWorldAccess;
+import net.minecraft.core.block.Blocks;
+import net.minecraft.core.world.pos.TilePosc;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,17 +62,18 @@ public final class ChefJob implements EmployeeJob {
 		return ChefAgent.build(mob, traits, stats, stations);
 	}
 
-	/// The stations of a chef: the base ones (food, rest) plus the workplace as its work station.
+	/// The stations of a chef: the base ones already include workArea from the
+	/// mob; the chef job just returns them as-is.
 	@Override
 	public EmployeeStations stations(MobEmployee mob, EmployeeStations base) {
-		return base.withWorkPlace(() -> workArea(mob).map(a -> (PoscArea) a));
+		return base;
 	}
 
 	/// Standing on the workplace pays the work deficit: that keeps the work drive
 	/// alive so the cook plan continues.
 	@Override
 	public void recharge(MobEmployee mob, EmployeeStats stats) {
-		Optional<PoscArea.Area2D> area = workArea(mob);
+		Optional<PoscArea.Area2D> area = mob.workArea;
 		if (area.isEmpty()) {
 			return;
 		}
@@ -81,7 +85,7 @@ public final class ChefJob implements EmployeeJob {
 	/// A chef without a workplace has no work station: that is its own alert.
 	@Override
 	public Optional<EmployeeAlert> missingStationAlert(MobEmployee mob) {
-		return workArea(mob).isEmpty()
+		return mob.workArea.isEmpty()
 			? Optional.of(EmployeeAlert.NO_WORKPLACE)
 			: Optional.empty();
 	}
@@ -89,10 +93,43 @@ public final class ChefJob implements EmployeeJob {
 	/// Firing a chef takes its workplace away.
 	@Override
 	public void clearStations(MobEmployee mob) {
+		if (mob != null) {
+			mob.workArea = Optional.empty();
+			mob.homeArea = Optional.empty();
+			mob.restArea = Optional.empty();
+			mob.foodArea = Optional.empty();
+		}
 		if (mob != null && mob.jobState() instanceof ChefJobState chefState) {
-			chefState.clearWorkArea();
 			chefState.clearDestChest();
 		}
+	}
+
+	/// The chef needs a furnace or workbench and at least one chest in its work area.
+	@Override
+	public String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea) {
+		boolean hasCookStation = false;
+		boolean hasChest = false;
+		for (TilePosc p : MobWorldAccess.getBlocksInArea3D(workArea)) {
+			int id = mob.world.getBlockType(p).id();
+			if (id == Blocks.FURNACE_STONE_IDLE.id()
+				|| id == Blocks.FURNACE_STONE_ACTIVE.id()
+				|| id == Blocks.WORKBENCH.id()) {
+				hasCookStation = true;
+			}
+			if (MobWorldAccess.getChest(mob.world, p) != null) {
+				hasChest = true;
+			}
+			if (hasCookStation && hasChest) break;
+		}
+		StringBuilder sb = new StringBuilder();
+		if (!hasCookStation) {
+			sb.append("no furnace or workbench in work zone");
+		}
+		if (!hasChest) {
+			if (sb.length() > 0) sb.append("; ");
+			sb.append("no chest in work zone");
+		}
+		return sb.length() > 0 ? sb.toString() : null;
 	}
 
 	/// The chef does its work through the cook task driven by the GOAP brain;
@@ -106,18 +143,14 @@ public final class ChefJob implements EmployeeJob {
 		return new ChefJobState();
 	}
 
-	/// The workplace of a chef, read from the state of its job.
+	/// The workplace of a chef, read from the work zone of the mob.
 	///
-	/// The state belongs to the mob and is of type {@link ChefJobState}; a
-	/// mob whose state is another one (or the plain one) has no workplace at all.
+	/// The work zone is a base employee zone (assigned with the work-area
+	/// stick), so every job reads the same place.
 	public static Optional<PoscArea.Area2D> workArea(MobEmployee mob) {
 		if (mob == null) {
 			return Optional.empty();
 		}
-		EmployeeJobState state = mob.jobState();
-		if (state instanceof ChefJobState chefState) {
-			return chefState.workArea();
-		}
-		return Optional.empty();
+		return mob.workArea;
 	}
 }

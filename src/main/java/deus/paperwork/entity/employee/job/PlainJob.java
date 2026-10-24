@@ -6,6 +6,7 @@ import deus.paperwork.entity.employee.MobEmployeeAgent;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
 import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
+import deus.paperwork.core.util.PoscArea;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
 
 import java.util.List;
@@ -63,6 +64,12 @@ public final class PlainJob implements EmployeeJob {
 	/// The plain job owns no station, so there is nothing to clear.
 	@Override
 	public void clearStations(MobEmployee mob) {}
+
+	/// The plain job needs nothing specific in its work area.
+	@Override
+	public String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea) {
+		return null;
+	}
 
 	@Override
 	public EmployeeJobState createState() {

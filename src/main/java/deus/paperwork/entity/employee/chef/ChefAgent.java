@@ -12,11 +12,13 @@ import deus.brainless.limbic.Psyche;
 import deus.brainless.limbic.Temperament;
 import deus.brainless.task.TaskFactory;
 import deus.brainless.utils.Timer;
+import deus.brainless.drive.Drives;
+import deus.paperwork.Paperwork;
 import deus.paperwork.core.ai.PaperworkDrives;
 import deus.paperwork.core.ai.tasks.Goto;
+import deus.paperwork.core.util.PoscArea;
 import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.MobEmployeeAgent;
-import deus.paperwork.entity.employee.farmer.FarmTask;
 import deus.paperwork.entity.employee.model.EmployeeStations;
 import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
@@ -47,10 +49,17 @@ public final class ChefAgent {
 			new ArbiterConfig(0.0, MobEmployeeAgent.WANDER)
 		);
 		TaskFactory<GoapAction> tasks = action -> switch (action.id()) {
-			case "goto_kitchen" -> Goto.fromArea(mob, stations.workPlace(), "farm", 2.5, 0);
-			case "cook"      -> new CookTask(mob);
+			case "goto_kitchen" -> Goto.fromArea(mob, stations.workPlace(), "kitchen", 2.5, 0);
+			case "kitchen"      -> new CookTask(mob);
 			default          -> MobEmployeeAgent.employeeTask(action, mob, stations, stats);
 		};
+		// Diagnóstico: si el chef no tiene área de trabajo asignada, nunca
+		// podrá cocinar. Loguearlo una vez para ayudar a depurar.
+		Optional<? extends PoscArea> workPlaceOpt = stations.workPlace().get();
+		if (workPlaceOpt.isEmpty()) {
+			Paperwork.LOGGER.warn("[ChefAgent] mob @{} has no workArea assigned — it will not cook until an area is set with the WorkAreaStick", System.identityHashCode(mob));
+		}
+
 		Agent agent = new Agent(
 			psyche,
 			arbiter,
@@ -67,6 +76,23 @@ public final class ChefAgent {
 
 	private static Temperament buildTemperament() {
 		Temperament t = MobEmployeeAgent.extendEmployeeTemplate();
+
+		/// El chef prioriza cocinar sobre comer: cuando su stat de trabajo está
+		/// bajo (necesita trabajar para recargarlo), el deseo de comer se reduce
+		/// para que el drive de trabajo pueda ejecutarse primero. Si no hay
+		/// comida en el área de comida, el chef no se queda atorado intentando
+		/// comer; pasa a cocinar.
+		t.layer("chef_work_priority", layer -> {
+			layer.mix("chef_eat_mod")
+				.sub("work", 0.9)
+				.sigmoid(7)
+				.onHigh(Drives.HUNGER);
+
+			layer.mix("chef_work_mod")
+				.add("work", 1.2)
+				.sigmoid(5)
+				.onHigh(PaperworkDrives.WORK);
+		});
 
 		return t;
 	}

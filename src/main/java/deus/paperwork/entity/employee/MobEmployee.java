@@ -28,12 +28,14 @@ import deus.utils.annotations.RegisterEntity;
 import deus.utils.annotations.RegisterEntityRenderer;
 import net.minecraft.client.render.texture.stitcher.IconCoordinate;
 import net.minecraft.client.render.texture.stitcher.TextureRegistry;
+import net.minecraft.core.block.Blocks;
 import net.minecraft.core.block.entity.TileEntityChest;
 import net.minecraft.core.entity.Entity;
 import net.minecraft.core.entity.IItemHolding;
 import net.minecraft.core.entity.player.Player;
 import net.minecraft.core.item.ItemFood;
 import net.minecraft.core.item.ItemStack;
+import net.minecraft.core.net.command.TextFormatting;
 import net.minecraft.core.util.helper.DamageType;
 import net.minecraft.core.world.World;
 import net.minecraft.core.world.pos.TilePos;
@@ -111,6 +113,19 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	private static final String NBT_JOB_STATE = "JobState";
 	private static final String NBT_INVENTORY = "Inventory";
 
+	/// Zone NBT keys.
+	private static final String NBT_WORK_AREA = "WorkArea";
+	private static final String NBT_REST_AREA = "RestArea";
+	private static final String NBT_FOOD_AREA = "FoodArea";
+	private static final String NBT_HOME_AREA = "HomeArea";
+
+	/// Corner keys inside a zone tag.
+	private static final String NBT_A = "A";
+	private static final String NBT_B = "B";
+	private static final String NBT_X = "X";
+	private static final String NBT_Y = "Y";
+	private static final String NBT_Z = "Z";
+
 	private final EmployeeTraits traits = EmployeeTraits.random();
 	private final EmployeeStats stats = new EmployeeStats();
 	public final ContainerMob inventory = new ContainerMob("employee_inventory", INVENTORY_SIZE);
@@ -122,10 +137,19 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	/// The last inventory contents sent to the clients, to send only what changed.
 	private final ItemStack[] syncedInventory = new ItemStack[INVENTORY_SIZE];
 
-	// the workplace anchors, mirroring the old Optional fields; assign via
-	// assignFoodPlace / assignBed once the entity owns its places
-	public Optional<PoscArea.Area2D> food_place = Optional.empty();
-	public Optional<TilePosc> bed_position = Optional.empty();
+	/// The four zones assigned to this employee. A job may add its own
+	/// station on top of these (e.g. the chef's workplace).
+	public Optional<PoscArea.Area2D> workArea = Optional.empty();
+	public Optional<PoscArea.Area2D> restArea = Optional.empty();
+	public Optional<PoscArea.Area2D> foodArea = Optional.empty();
+	public Optional<PoscArea.Area2D> homeArea = Optional.empty();
+
+	/// Ticks since the last "excuse" message was sent. Used to rate-limit
+	/// the chat complaints when a zone is missing something.
+	private int excuseTicks = 0;
+
+	/// How many ticks between excuse messages (600 = ~1 minute at 20 tps).
+	private static final int EXCUSE_INTERVAL_TICKS = 600;
 
 	// The look of the employee: the uniform pieces it wears and its hairstyle.
 	private final Map<UniformShape, UniformPiece> uniformPieces = new EnumMap<>(UniformShape.class);
@@ -352,31 +376,58 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	/// The stations every employee has: where it eats and where it rests.
 	protected EmployeeStations baseStations() {
 		return new EmployeeStations(
-			() -> food_place.map(area -> (PoscArea) area),
+			() -> foodArea.map(area -> (PoscArea) area),
 			this::foodSource,
-			() -> bed_position.map(MobEmployee::asArea),
-			Optional::empty   // the workplace belongs to the job
+			() -> restArea.map(area -> (PoscArea) area),
+			() -> workArea.map(area -> (PoscArea) area)
 		);
 	}
 
-	/// The seam the {@code eat} task bites through: any stocked oak chest in the
-	/// food place that keeps an {@link ItemFood} stack.
+	/// The seam the {@code eat} task bites through: any stocked chest in the
+	/// food area that keeps an {@link ItemFood} stack.
 	private Optional<Food> foodSource() {
-		return food_place.<Food>map(area -> new ChestFood());
+		return foodArea.<Food>map(area -> new ChestFood());
 	}
 
-	public void assignFoodPlace(@Nullable PoscArea.Area2D area) {
-		this.food_place = Optional.ofNullable(area);
+	/// Assigns the food zone where the employee looks for food.
+	public void assignFoodArea(@Nullable PoscArea.Area2D area) {
+		this.foodArea = Optional.ofNullable(area);
 	}
 
+	/// Assigns the rest zone where the employee sleeps / recovers fatigue.
+	public void assignRestArea(@Nullable PoscArea.Area2D area) {
+		this.restArea = Optional.ofNullable(area);
+	}
+
+	/// Assigns the work zone where the employee looks for job-specific blocks
+	/// (furnace, workbench, chests, crops, ...).
+	public void assignWorkArea(@Nullable PoscArea.Area2D area) {
+		this.workArea = Optional.ofNullable(area);
+	}
+
+	/// Assigns the home zone. The home zone must contain a bed.
+	public void assignHomeArea(@Nullable PoscArea.Area2D area) {
+		this.homeArea = Optional.ofNullable(area);
+	}
+
+	/// Assigns a single bed position inside the home zone (kept for
+	/// compatibility with the old employee stick).
 	public void assignBed(@Nullable TilePosc bed) {
-		this.bed_position = Optional.ofNullable(bed);
+		if (bed == null) {
+			this.homeArea = Optional.empty();
+			this.restArea = Optional.empty();
+			return;
+		}
+		this.homeArea = Optional.of(asArea(bed));
+		this.restArea = Optional.of(asArea(bed));
 	}
 
-	/// Fires the employee: the base stations and the ones of its job are cleared.
+	/// Fires the employee: all zones and the ones of its job are cleared.
 	public void clearStations() {
-		food_place = Optional.empty();
-		bed_position = Optional.empty();
+		workArea = Optional.empty();
+		restArea = Optional.empty();
+		foodArea = Optional.empty();
+		homeArea = Optional.empty();
 		job().clearStations(this);
 	}
 
@@ -406,6 +457,105 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		job().work(this);                // what the job does in the world
 		publishHudState();
 		syncInventory();
+		tickExcuses();                   // complain every minute when a zone lacks something
+	}
+
+	/// Every {@link #EXCUSE_INTERVAL_TICKS} ticks, checks each assigned zone
+	/// and tells the nearest player what is missing, if anything.
+	private void tickExcuses() {
+		excuseTicks++;
+		if (excuseTicks < EXCUSE_INTERVAL_TICKS) {
+			return;
+		}
+		excuseTicks = 0;
+
+		String missing = missingZoneDescription();
+		if (missing != null && !missing.isBlank()) {
+			Player nearest = nearestPlayer();
+			if (nearest != null) {
+				nearest.sendMessage(TextFormatting.Base.RED,
+					"[Employee] " + missing);
+			}
+		}
+	}
+
+	/// Describes what is missing in the assigned zones, or null when nothing
+	/// is missing.
+	private String missingZoneDescription() {
+		StringBuilder sb = new StringBuilder();
+
+		// Home zone must contain a bed.
+		if (homeArea.isPresent() && !hasBedInArea(homeArea.get())) {
+			if (sb.length() > 0) sb.append("; ");
+			sb.append("no bed in home zone");
+		}
+
+		// Food zone must contain a stocked chest with food.
+		if (foodArea.isPresent() && !hasFoodChestInArea(foodArea.get())) {
+			if (sb.length() > 0) sb.append("; ");
+			sb.append("no food in food zone");
+		}
+
+		// Rest zone should be present (even if just a bed position).
+		if (restArea.isEmpty()) {
+			if (sb.length() > 0) sb.append("; ");
+			sb.append("no rest zone");
+		}
+
+		// Work zone: let the job decide what it needs.
+		if (workArea.isPresent()) {
+			String jobMissing = job().missingZoneItems(this, workArea.get());
+			if (jobMissing != null && !jobMissing.isBlank()) {
+				if (sb.length() > 0) sb.append("; ");
+				sb.append(jobMissing);
+			}
+		}
+
+		if (sb.length() > 0) {
+			return sb.toString();
+		}
+		return null;
+	}
+
+	/// Whether the given area contains a bed block.
+	private boolean hasBedInArea(PoscArea.Area2D area) {
+		for (TilePosc p : PoscArea.tiles(area)) {
+			if (world.getBlockType(p).id() == Blocks.BED.id()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/// Whether the given area contains a chest with at least one ItemFood.
+	private boolean hasFoodChestInArea(PoscArea.Area2D area) {
+		for (TilePosc p : PoscArea.tiles(area)) {
+			TileEntityChest chest = MobWorldAccess.getChest(world, p);
+			if (chest == null) continue;
+			for (int i = 0; i < chest.getContainerSize(); i++) {
+				ItemStack stack = chest.getItem(i);
+				if (stack != null && stack.stackSize > 0
+					&& stack.getItem() instanceof ItemFood) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/// The nearest player to this employee, or null when there are none.
+	private Player nearestPlayer() {
+		Player closest = null;
+		double closestDistance = Double.MAX_VALUE;
+		for (Player player : world.players) {
+			if (!player.isAlive()) continue;
+			double distance = distanceTo(player);
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closest = player;
+			}
+		}
+		return closest;
 	}
 
 	/// Mirrors the old passive drain: standing at a station slowly pays the
@@ -413,10 +563,10 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	/// is what makes the {@code rest} plan terminate off-shift. The recharge of
 	/// the job is added on top of this one, after the brain tick (see updateAI).
 	protected void rechargeAtStations() {
-		if (food_place.isPresent() && near(food_place.get().center(), STATION_NEAR_RANGE)) {
+		if (foodArea.isPresent() && near(foodArea.get().center(), STATION_NEAR_RANGE)) {
 			stats.eat(NEAR_FOOD_RELIEF);
 		}
-		if (bed_position.isPresent() && near(bed_position.get(), STATION_NEAR_RANGE)) {
+		if (restArea.isPresent() && near(restArea.get().center(), STATION_NEAR_RANGE)) {
 			stats.rest(NEAR_REST_RELIEF);
 		}
 	}
@@ -449,8 +599,8 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	/// every tick.
 	private void publishHudState() {
 		EmployeeHudState hud = EmployeeHudState.compute(new EmployeeHudState.Conditions(
-			food_place.isPresent(),
-			bed_position.isPresent(),
+			foodArea.isPresent(),
+			restArea.isPresent(),
 			job().missingStationAlert(this).orElse(null),
 			stats.danger,
 			stats.fatigue,
@@ -539,6 +689,11 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		CompoundTag inventoryTag = new CompoundTag();
 		inventory.saveToNBT(inventoryTag);
 		tag.putCompound(NBT_INVENTORY, inventoryTag);
+
+		writeArea(tag, NBT_WORK_AREA, workArea);
+		writeArea(tag, NBT_REST_AREA, restArea);
+		writeArea(tag, NBT_FOOD_AREA, foodArea);
+		writeArea(tag, NBT_HOME_AREA, homeArea);
 	}
 
 	@Override
@@ -557,6 +712,11 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		if (tag.containsKey(NBT_INVENTORY)) {
 			inventory.loadFromNBT(tag.getCompound(NBT_INVENTORY));
 		}
+
+		workArea = readArea(tag, NBT_WORK_AREA);
+		restArea = readArea(tag, NBT_REST_AREA);
+		foodArea = readArea(tag, NBT_FOOD_AREA);
+		homeArea = readArea(tag, NBT_HOME_AREA);
 	}
 
 	// ------------------------------------------------------------------ stats & helpers
@@ -598,7 +758,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		public Optional<TilePosc> nearestChest(double mobX, double mobZ) {
 			TilePosc best = null;
 			double bestDistance = Double.MAX_VALUE;
-			PoscArea.Area2D area = food_place.get();
+			PoscArea.Area2D area = foodArea.get();
 
 			for (TilePosc p : getBlocksInArea(area)) {
 				TileEntityChest chest = MobWorldAccess.getChest(world, p);
@@ -736,4 +896,55 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	 *     }
 	 * }
 	 * ------------------------------------------------------------------ */
+
+	/// Writes a zone area into the tag under the given key.
+	private void writeArea(CompoundTag tag, String key, Optional<PoscArea.Area2D> area) {
+		area.ifPresent(a -> {
+			CompoundTag zoneTag = new CompoundTag();
+			writePos(zoneTag, NBT_A, a.a());
+			writePos(zoneTag, NBT_B, a.b());
+			tag.putCompound(key, zoneTag);
+		});
+	}
+
+	/// Reads a zone area from the tag under the given key.
+	private Optional<PoscArea.Area2D> readArea(CompoundTag tag, String key) {
+		if (!tag.containsKey(key)) {
+			return Optional.empty();
+		}
+		CompoundTag zoneTag = tag.getCompound(key);
+		if (zoneTag == null) {
+			return Optional.empty();
+		}
+		Optional<TilePosc> a = readPos(zoneTag, NBT_A);
+		Optional<TilePosc> b = readPos(zoneTag, NBT_B);
+		if (a.isEmpty() || b.isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(new PoscArea.Area2D(a.get(), b.get()));
+	}
+
+	private void writePos(CompoundTag tag, String key, TilePosc pos) {
+		CompoundTag corner = new CompoundTag();
+		corner.putInt(NBT_X, pos.x());
+		corner.putInt(NBT_Y, pos.y());
+		corner.putInt(NBT_Z, pos.z());
+		tag.putCompound(key, corner);
+	}
+
+	private Optional<TilePosc> readPos(CompoundTag tag, String key) {
+		if (!tag.containsKey(key)) {
+			return Optional.empty();
+		}
+		CompoundTag corner = tag.getCompound(key);
+		if (corner == null) {
+			return Optional.empty();
+		}
+		return Optional.of(new TilePos(
+			corner.getInteger(NBT_X),
+			corner.getInteger(NBT_Y),
+			corner.getInteger(NBT_Z)
+		));
+	}
+
 }

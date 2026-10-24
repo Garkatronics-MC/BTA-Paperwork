@@ -1,6 +1,7 @@
 package deus.paperwork.entity.employee.farmer;
 
 import deus.brainless.agent.Agent;
+import deus.paperwork.entity.base.MobWorldAccess;
 import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
 import deus.paperwork.entity.employee.job.EmployeeAccessory;
@@ -13,6 +14,7 @@ import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
 import deus.paperwork.core.util.PoscArea;
+import net.minecraft.core.block.Blocks;
 import net.minecraft.core.item.ItemStack;
 import net.minecraft.core.item.Items;
 
@@ -105,19 +107,15 @@ public final class FarmerJob implements EmployeeJob {
 		return stack == null ? 0 : stack.stackSize;
 	}
 
-	/// The plot of a farmer, read from the state of its job.
+	/// The plot of a farmer, read from the work zone of the mob.
 	///
-	/// The state belongs to the mob and is of type {@link FarmerJobState}; a
-	/// mob whose state is another one (or the plain one) has no plot at all.
+	/// The work zone is a base employee zone (assigned with the work-area
+	/// stick), so every job reads the same place.
 	public static Optional<PoscArea.Area2D> farmArea(MobEmployee mob) {
 		if (mob == null) {
 			return Optional.empty();
 		}
-		EmployeeJobState state = mob.jobState();
-		if (state instanceof FarmerJobState farmerState) {
-			return farmerState.farmArea();
-		}
-		return Optional.empty();
+		return mob.workArea;
 	}
 
 	// ------------------------------------------------------------------ the brain
@@ -129,18 +127,18 @@ public final class FarmerJob implements EmployeeJob {
 
 	// ------------------------------------------------------------------ the stations
 
-	/// The stations of a farmer: the base ones (food, rest) plus the plot as
-	/// its workplace.
+	/// The stations of a farmer: the base ones already include workArea from the
+	/// mob; the farmer job just returns them as-is.
 	@Override
 	public EmployeeStations stations(MobEmployee mob, EmployeeStations base) {
-		return base.withWorkPlace(() -> farmArea(mob).map(a -> (PoscArea) a));
+		return base;
 	}
 
 	/// Standing on the plot pays the work deficit: that keeps the work drive
 	/// alive so the plan continues until the plot is done.
 	@Override
 	public void recharge(MobEmployee mob, EmployeeStats stats) {
-		Optional<PoscArea.Area2D> area = farmArea(mob);
+		Optional<PoscArea.Area2D> area = mob.workArea;
 		if (area.isEmpty()) {
 			return;
 		}
@@ -152,7 +150,7 @@ public final class FarmerJob implements EmployeeJob {
 	/// A farmer without a plot has no workplace: that is its own alert.
 	@Override
 	public Optional<EmployeeAlert> missingStationAlert(MobEmployee mob) {
-		return farmArea(mob).isEmpty()
+		return mob.workArea.isEmpty()
 			? Optional.of(EmployeeAlert.NO_WORKPLACE)
 			: Optional.empty();
 	}
@@ -167,9 +165,20 @@ public final class FarmerJob implements EmployeeJob {
 	/// Firing a farmer takes its plot away.
 	@Override
 	public void clearStations(MobEmployee mob) {
-		if (mob != null && mob.jobState() instanceof FarmerJobState farmerState) {
-			farmerState.clearFarmArea();
+		if (mob != null) {
+			mob.workArea = Optional.empty();
 		}
+	}
+
+	/// The farmer needs farmland in its work area.
+	@Override
+	public String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea) {
+		boolean hasFarmland = MobWorldAccess.getBlocksInArea3D(workArea).stream()
+			.anyMatch(p -> mob.world.getBlockType(p).id() == Blocks.FARMLAND_DIRT.id());
+		if (!hasFarmland) {
+			return "no farmland in work zone";
+		}
+		return null;
 	}
 
 	// ------------------------------------------------------------------ the state

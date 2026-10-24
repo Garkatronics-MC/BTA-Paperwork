@@ -5,6 +5,7 @@ import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
 import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
+import deus.paperwork.core.util.PoscArea;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
 
 import java.util.List;
@@ -63,6 +64,11 @@ public interface EmployeeJob {
 
 	/// Clears the job's own stations (firing the employee).
 	void clearStations(MobEmployee mob);
+
+	/// Describes what is missing in the given work area for this job, or null
+	/// when the area has everything the job needs. Used for the per-minute
+	/// excuse messages.
+	String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea);
 
 	/// Fresh (and empty) mutable state for a mob with this job.
 	EmployeeJobState createState();

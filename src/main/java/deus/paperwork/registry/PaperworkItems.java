@@ -1,10 +1,12 @@
 package deus.paperwork.registry;
 
 import deus.paperwork.entity.cardboard_box.BoxSize;
-import deus.paperwork.item.EmployeeStick;
-import deus.paperwork.item.FarmStick;
+import deus.paperwork.item.FoodAreaStick;
+import deus.paperwork.item.HomeAreaStick;
 import deus.paperwork.item.ItemCardboardBox;
 import deus.paperwork.item.JobStick;
+import deus.paperwork.item.RestAreaStick;
+import deus.paperwork.item.WorkAreaStick;
 import deus.paperwork.item.Stapler;
 import deus.paperwork.item.base.CustomLayerItem;
 import deus.paperwork.item.base.ItemPencil;
@@ -57,9 +59,11 @@ public class PaperworkItems {
 	public static Item FOOD_COFFE_MUG;
 	public static Item OFFICE_CHAIR;
 
-	public static Item EMPLOYEE_STICK;
-	public static Item FARMER_STICK;
 	public static Item JOB_STICK;
+	public static Item WORK_AREA_STICK;
+	public static Item REST_AREA_STICK;
+	public static Item HOME_AREA_STICK;
+	public static Item FOOD_AREA_STICK;
 
 
 		public static void initialize() {
@@ -142,9 +146,11 @@ public class PaperworkItems {
 				EntityOfficeChair.class
 			);
 
-			EMPLOYEE_STICK = new EmployeeStick("employee", MOD_ID+":item/employee_stick", itemGoc("EMPLOYEE_STICK"));
-			FARMER_STICK = new FarmStick("farmer", MOD_ID+":item/farmer_stick", itemGoc("FARMER_STICK"));
 			JOB_STICK = new JobStick("job", MOD_ID+":item/job_stick", itemGoc("JOB_STICK"));
+			WORK_AREA_STICK = new WorkAreaStick("work_area", MOD_ID+":item/work_area_stick", 23100);
+			REST_AREA_STICK = new RestAreaStick("rest_area", MOD_ID+":item/rest_area_stick", 23101);
+			HOME_AREA_STICK = new HomeAreaStick("home_area", MOD_ID+":item/home_area_stick", 23102);
+			FOOD_AREA_STICK = new FoodAreaStick("food_area", MOD_ID+":item/food_area_stick", 23103);
 		}
 
 

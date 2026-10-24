@@ -2,6 +2,11 @@ package deus.paperwork.item;
 
 import deus.brainless.Brainless;
 import deus.paperwork.entity.employee.MobEmployee;
+import deus.paperwork.entity.employee.chef.ChefJob;
+import deus.paperwork.entity.employee.chef.ChefJobState;
+import deus.paperwork.entity.employee.farmer.FarmerJob;
+import deus.paperwork.entity.employee.farmer.FarmerJobState;
+import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.core.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
 import net.minecraft.client.render.item.model.ItemModelStandard;
@@ -23,9 +28,12 @@ public class EmployeeStick extends Item {
 
 	public enum AssignMode { BED, FOOD }
 
-	private TilePosc pendingBed  = null;
-	private TilePosc foodPointA  = null;
-	private TilePosc foodPointB  = null;
+	/// Cama guardada con shift+click sobre una cama, esperando a ser asignada a un empleado.
+	private TilePosc pendingBed = null;
+
+	/// Puntos del área marcados con click/shift+click sobre troncos de roble.
+	private TilePosc areaPointA = null;
+	private TilePosc areaPointB = null;
 
 	public EmployeeStick(@NotNull String translationKey, @NotNull String namespaceId, int id) {
 		super(translationKey, namespaceId, id);
@@ -41,34 +49,49 @@ public class EmployeeStick extends Item {
 		TilePosc pos = new TilePos(blockPos.x(), blockPos.y(), blockPos.z());
 
 		if (blockId == Blocks.BED.id()) {
-			pendingBed = pos;
-			Brainless.LOGGER.info("[Stick] Bed position saved: {}", pos);
-			say(player, TextFormatting.Base.YELLOW, "Employee stick: bed position saved " + fmt(pos)
-				+ " — now right-click an employee to hand it over.");
+			if (player.isSneaking()) {
+				pendingBed = pos;
+				areaPointA = null;
+				areaPointB = null;
+				Brainless.LOGGER.info("[Stick] Bed position saved: {}", pos);
+				say(player, TextFormatting.Base.YELLOW, "Employee stick: bed saved " + fmt(pos)
+					+ " — right-click an employee to assign it.");
+			} else {
+				// Click normal sobre cama: también guarda (atajo rápido).
+				pendingBed = pos;
+				areaPointA = null;
+				areaPointB = null;
+				Brainless.LOGGER.info("[Stick] Bed position saved: {}", pos);
+				say(player, TextFormatting.Base.YELLOW, "Employee stick: bed saved " + fmt(pos)
+					+ " — right-click an employee to assign it.");
+			}
+			return true;
 
 		} else if (blockId == Blocks.LOG_OAK.id()) {
 			if (player.isSneaking()) {
-				foodPointB = pos;
-				Brainless.LOGGER.info("[Stick] Food point B set: {}", pos);
-				say(player, TextFormatting.Base.YELLOW, "Food area: point B set " + fmt(pos) + ".");
-				if (foodPointA != null) {
-					Brainless.LOGGER.info("[Stick] Food area ready: {} -> {}", foodPointA, foodPointB);
-					say(player, TextFormatting.Base.GREEN, "Food area ready — right-click an employee to assign it.");
+				areaPointB = pos;
+				pendingBed = null;
+				Brainless.LOGGER.info("[Stick] Area point B set: {}", pos);
+				say(player, TextFormatting.Base.YELLOW, "Area: point B set " + fmt(pos) + ".");
+				if (areaPointA != null) {
+					Brainless.LOGGER.info("[Stick] Area ready: {} -> {}", areaPointA, areaPointB);
+					say(player, TextFormatting.Base.GREEN, "Area ready — right-click an employee to assign it.");
 				}
 			} else {
-				foodPointA = pos;
-				foodPointB = null;
-				Brainless.LOGGER.info("[Stick] Food point A set: {}", pos);
-				say(player, TextFormatting.Base.YELLOW, "Food area: point A set " + fmt(pos)
-					+ " — sneak+click the second post to finish the area.");
+				areaPointA = pos;
+				areaPointB = null;
+				pendingBed = null;
+				Brainless.LOGGER.info("[Stick] Area point A set: {}", pos);
+				say(player, TextFormatting.Base.YELLOW, "Area: point A set " + fmt(pos)
+					+ " — sneak+click the second log to finish the area.");
 			}
+			return true;
+
 		} else {
 			Brainless.LOGGER.info("[Stick] Block not recognized for assignment");
-			say(player, TextFormatting.Base.RED, "Employee stick: click a bed or the posts of your food area.");
+			say(player, TextFormatting.Base.RED, "Employee stick: click a bed (shift) or oak logs (click/shift) to mark points.");
 			return false;
 		}
-
-		return true;
 	}
 
 	@Override
@@ -77,6 +100,7 @@ public class EmployeeStick extends Item {
 
 		boolean assigned = false;
 
+		// 1) Asignar cama pendiente si la hay.
 		if (pendingBed != null) {
 			employee.assignBed(pendingBed);
 			Brainless.LOGGER.info("[Stick] Bed assigned to employee at {}", pendingBed);
@@ -87,26 +111,63 @@ public class EmployeeStick extends Item {
 			assigned = true;
 		}
 
-		if (foodPointA != null && foodPointB != null) {
-			employee.assignFoodPlace(new PoscArea.Area2D(foodPointA, foodPointB));
-			Brainless.LOGGER.info("[Stick] Food area assigned to employee: {} -> {}", foodPointA, foodPointB);
-			if (!player.world.isClientSide) {
-				say(player, TextFormatting.Base.GREEN, "Employee got a food area " + fmt(foodPointA) + " -> " + fmt(foodPointB) + ".");
+		// 2) Asignar área pendiente si la hay.
+		// Siempre se asigna como foodPlace para que cualquier empleado pueda
+		// ir a comer cuando tenga hambre. Además, según el job, se guarda como
+		// workArea (chef) o farmArea (farmer) para su tarea específica.
+		if (areaPointA != null && areaPointB != null) {
+			PoscArea.Area2D area = new PoscArea.Area2D(areaPointA, areaPointB);
+			employee.assignFoodArea(area);
+
+			if (employee.job() instanceof ChefJob) {
+				ChefJobState state = (ChefJobState) employee.jobState();
+				state.setWorkArea(area);
+				Brainless.LOGGER.info("[Stick] Chef work area assigned: {} -> {}", areaPointA, areaPointB);
+				if (!player.world.isClientSide) {
+					say(player, TextFormatting.Base.GREEN, "Chef got a food+work area " + fmt(areaPointA) + " -> " + fmt(areaPointB) + ".");
+				}
+			} else if (employee.job() instanceof FarmerJob) {
+				FarmerJobState state = (FarmerJobState) employee.jobState();
+				state.setFarmArea(area);
+				Brainless.LOGGER.info("[Stick] Farmer farm area assigned: {} -> {}", areaPointA, areaPointB);
+				if (!player.world.isClientSide) {
+					say(player, TextFormatting.Base.GREEN, "Farmer got a food+farm area " + fmt(areaPointA) + " -> " + fmt(areaPointB) + ".");
+				}
+			} else {
+				Brainless.LOGGER.info("[Stick] Food area assigned to plain employee: {} -> {}", areaPointA, areaPointB);
+				if (!player.world.isClientSide) {
+					say(player, TextFormatting.Base.GREEN, "Employee got a food area " + fmt(areaPointA) + " -> " + fmt(areaPointB) + ".");
+				}
 			}
-			foodPointA = null;
-			foodPointB = null;
+			areaPointA = null;
+			areaPointB = null;
 			assigned = true;
-		} else if (foodPointA != null) {
-			Brainless.LOGGER.info("[Stick] Food area incomplete — shift+click second chest for point B");
-			say(player, TextFormatting.Base.YELLOW, "Food area incomplete — sneak+click the second post of the area first.");
 		}
 
+		// 3) Si no había nada pendiente, ciclar la profesión del empleado.
 		if (!assigned) {
-			Brainless.LOGGER.info("[Stick] Nothing to assign — save a position first");
-			say(player, TextFormatting.Base.RED, "Nothing to assign — save a bed or food area with the stick first.");
+			cycleJob(employee, player);
 		}
 
 		return assigned;
+	}
+
+	/// Cicla la profesión del empleado: plain → farmer → chef → plain.
+	private void cycleJob(MobEmployee employee, Player player) {
+		String current = employee.jobId();
+		String next;
+		if (EmployeeJobs.PLAIN_ID.equals(current)) {
+			next = EmployeeJobs.FARMER_ID;
+		} else if (EmployeeJobs.FARMER_ID.equals(current)) {
+			next = ChefJob.CHEF_ID;
+		} else {
+			next = EmployeeJobs.PLAIN_ID;
+		}
+		employee.setJob(next);
+		Brainless.LOGGER.info("[Stick] Employee job changed: {} -> {}", current, next);
+		if (!employee.world.isClientSide && player != null) {
+			say(player, TextFormatting.Base.GREEN, "Employee is now a " + next + ".");
+		}
 	}
 
 	private static String fmt(TilePosc pos) {
@@ -114,6 +175,8 @@ public class EmployeeStick extends Item {
 	}
 
 	private void say(Player player, TextFormatting.Base color, String message) {
-		player.sendMessage(color, "[Employee] " + message);
+		if (player != null) {
+			player.sendMessage(color, "[Employee] " + message);
+		}
 	}
 }
