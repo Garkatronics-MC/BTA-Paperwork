@@ -151,6 +151,12 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	/// How many ticks between excuse messages (600 = ~1 minute at 20 tps).
 	private static final int EXCUSE_INTERVAL_TICKS = 600;
 
+	/// Cached answer to "does the job have work right now?". The check scans
+	/// the world, so it is refreshed on a timer instead of every tick.
+	private boolean workAvailable = false;
+	private int workAvailabilityTicks = 0;
+	private static final int WORK_AVAILABILITY_INTERVAL_TICKS = 20;
+
 	// The look of the employee: the uniform pieces it wears and its hairstyle.
 	private final Map<UniformShape, UniformPiece> uniformPieces = new EnumMap<>(UniformShape.class);
 	private HairPiece hairPiece = null;
@@ -231,6 +237,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		this.entityData.set(DATA_JOB_ID, newJob.id());
 		AgentResetter.reset(this);                        // the brain is rebuilt
 		this.jobState = newJob.createState();
+		this.workAvailabilityTicks = 0;                   // re-check with the new job
 	}
 
 	/// The mutable state of the job of this employee.
@@ -329,6 +336,20 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		super.sense(agent);
 		stats.tick();
 		stats.set(agent);
+		refreshWorkAvailability();
+		agent.sense("work_available", workAvailable ? 1.0 : 0.0);
+	}
+
+	/// Refreshes the cached work availability. Without work the desire to work
+	/// drops, so the employee falls back to wandering instead of retrying a
+	/// job that has nothing to do.
+	private void refreshWorkAvailability() {
+		if (workAvailabilityTicks > 0) {
+			workAvailabilityTicks--;
+			return;
+		}
+		workAvailabilityTicks = WORK_AVAILABILITY_INTERVAL_TICKS;
+		workAvailable = job().hasWorkToDo(this);
 	}
 
 	@Override

@@ -70,6 +70,16 @@ public interface EmployeeJob {
 	/// excuse messages.
 	String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea);
 
+	/// Whether this job has real work available right now. While the employee
+	/// idles it keeps wandering, but as soon as this turns true the stroll is
+	/// cut short so the work drive can take over.
+	///
+	/// It must stay cheap enough to be polled, and it must never have side
+	/// effects: it only looks at the world.
+	default boolean hasWorkToDo(MobEmployee mob) {
+		return false;
+	}
+
 	/// Fresh (and empty) mutable state for a mob with this job.
 	EmployeeJobState createState();
 }

@@ -26,6 +26,7 @@ import deus.paperwork.core.ai.PaperworkDrives;
 import deus.paperwork.core.ai.tasks.Consume;
 import deus.paperwork.core.ai.tasks.Goto;
 import deus.paperwork.core.ai.tasks.Stay;
+import deus.paperwork.core.ai.tasks.WanderArea;
 import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
@@ -75,7 +76,7 @@ public final class MobEmployeeAgent {
 			case "strike"   -> new Attack(mob);
 			case "retreat"  -> new Flee(mob);
 			case "recover"  -> new Recover(mob, 60);
-			case "wander"   -> new Wander(mob);
+			case "wander"   -> wanderTask(mob, stations);
 
 			// employee life (station-targeted tasks rewritten from the old jobs)
 			case "goto_food" -> Goto.fromArea(mob, stations.foodPlace(), "food", 2.5, 0);
@@ -84,6 +85,15 @@ public final class MobEmployeeAgent {
 			case "rest"      -> new Stay(mob, "rest", () -> stats.fatigue, 0.2);
 			default          -> Tasks.waitFor(1);
 		};
+	}
+
+	/// The idle stroll: an employee with a workplace circles inside it and
+	/// stops as soon as its job has work; without one it wanders as usual.
+	private static Task wanderTask(AgentMob mob, EmployeeStations stations) {
+		if (mob instanceof MobEmployee employee) {
+			return new WanderArea(mob, stations.workPlace(), () -> employee.job().hasWorkToDo(employee));
+		}
+		return new Wander(mob);
 	}
 
 	/// Fresh deep copy of the employee temperament, ready to be extended with
@@ -109,6 +119,7 @@ public final class MobEmployeeAgent {
 		Temperament t = new Temperament();
 		t.inputs(in -> {
 			in.declare("targetDist", 1.0);   // health comes from EmployeeStats.declare below
+			in.declare("work_available", 1.0);   // 0 when the job has nothing to do
 			EmployeeTraits.declare(in);   // trait_social, trait_brave, trait_hardworking, trait_lazy
 			EmployeeStats.declare(in);    // low_health, social, health, danger, fatigue, hunger, work
 		});
@@ -169,6 +180,9 @@ public final class MobEmployeeAgent {
 				.sub("fatigue", 0.4)
 				.sub("danger", 0.7)
 				.sub("social", 0.2)
+				// No work to do -> no desire to work: the fallback drive takes
+				// over and the employee wanders around its workplace.
+				.mul("work_available", 1.0)
 				.sigmoid(5)
 				.onHigh(PaperworkDrives.WORK);
 		});

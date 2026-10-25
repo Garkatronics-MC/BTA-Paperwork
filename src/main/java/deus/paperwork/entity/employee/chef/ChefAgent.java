@@ -90,6 +90,7 @@ public final class ChefAgent {
 
 			layer.mix("chef_work_mod")
 				.add("work", 1.2)
+				.mul("work_available", 1.0)
 				.sigmoid(5)
 				.onHigh(PaperworkDrives.WORK);
 		});

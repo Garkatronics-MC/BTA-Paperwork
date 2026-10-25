@@ -137,6 +137,13 @@ public final class ChefJob implements EmployeeJob {
 	@Override
 	public void work(MobEmployee mob) {}
 
+	/// There is work when the chef carries something smeltable or a chest in
+	/// the kitchen holds it.
+	@Override
+	public boolean hasWorkToDo(MobEmployee mob) {
+		return mob.workArea.map(area -> CookTask.hasCookableWork(mob, area)).orElse(false);
+	}
+
 	/// Fresh (and empty) mutable state for a mob with this job.
 	@Override
 	public EmployeeJobState createState() {

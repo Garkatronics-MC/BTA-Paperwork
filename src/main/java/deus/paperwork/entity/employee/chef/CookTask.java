@@ -133,9 +133,26 @@ public class CookTask implements Task {
 
 		switch (phase) {
 			case SCAN_SOURCE -> {
+				if (hasCookedInInventory()) {
+					// Leftover cooked food from an interrupted cycle: deposit it
+					// before starting a new cook.
+					phase = Phase.SCAN_DEST;
+					return TaskStatus.RUNNING;
+				}
 				if (hasSmeltableInInventory()) {
 					// Already holding raw ingredients: skip to the cook station.
 					phase = Phase.SCAN_COOK_STATION;
+					return TaskStatus.RUNNING;
+				}
+				TilePosc loadedFurnace = nearestLoadedFurnace(area);
+				if (loadedFurnace != null) {
+					// A furnace already holds an ingredient or a result: go
+					// finish that job instead of looking for more raw food.
+					cookStationPos = loadedFurnace;
+					currentStationIsFurnace = true;
+					currentTarget = loadedFurnace;
+					phase = Phase.MOVE_TO_COOK;
+					mob.navigateTo(loadedFurnace.x(), loadedFurnace.y(), loadedFurnace.z());
 					return TaskStatus.RUNNING;
 				}
 				if (sourceChest != null && chestHasSmeltable(sourceChest)) {
@@ -215,6 +232,16 @@ public class CookTask implements Task {
 					// Workbench does not need fuel: proceed to cook.
 					phase = Phase.COOKING;
 					return TaskStatus.RUNNING;
+				}
+				TileEntityFurnace furnace = getFurnace(cookStationPos);
+				if (furnace != null) {
+					ItemStack result = furnace.getItem(FURNACE_SLOT_RESULT);
+					if (result != null && result.stackSize > 0) {
+						// There is already something to collect: no need to
+						// refuel first.
+						phase = Phase.COOKING;
+						return TaskStatus.RUNNING;
+					}
 				}
 				if (furnaceHasFuel(cookStationPos)) {
 					// Furnace already has fuel: proceed to cook.
@@ -479,9 +506,87 @@ public class CookTask implements Task {
 		return false;
 	}
 
+	/// Whether the chef is holding cooked food that still needs a chest.
+	private boolean hasCookedInInventory() {
+		for (int i = 0; i < mob.inventory.getContainerSize(); i++) {
+			ItemStack stack = mob.inventory.getItem(i);
+			if (stack != null && stack.stackSize > 0 && isCooked(stack)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/// Whether an item stack has a furnace recipe.
 	private static boolean isSmeltable(ItemStack stack) {
 		return furnaceResultFor(stack) != null;
+	}
+
+	/// Whether there is anything for the chef to do right now. Used to keep the
+	/// work drive from proposing when the kitchen has nothing to cook, so the
+	/// employee wanders instead of retrying a doomed cook forever.
+	///
+	/// It counts pending work too (cooked food waiting to be deposited, a
+	/// furnace already burning or loaded) so the cook loop is not interrupted.
+	/// A raw item only counts when it could actually be cooked: there is a
+	/// station and enough fuel or a coal chest to run it.
+	public static boolean hasCookableWork(MobEmployee mob, PoscArea.Area2D area) {
+		if (mob == null) return false;
+
+		boolean hasRaw = false;
+		for (int i = 0; i < mob.inventory.getContainerSize(); i++) {
+			ItemStack stack = mob.inventory.getItem(i);
+			if (stack == null || stack.stackSize <= 0) continue;
+			// Cooked food waiting for a destination chest: still pending work.
+			if (isCooked(stack)) return true;
+			if (isSmeltable(stack)) hasRaw = true;
+		}
+
+		boolean hasFurnace = false;
+		boolean hasWorkbench = false;
+		boolean furnaceReady = false;
+		boolean hasCoalChest = false;
+		boolean pendingResult = false;
+		boolean pendingIngredient = false;
+
+		for (TilePosc p : MobWorldAccess.getBlocksInArea3D(area)) {
+			int id = mob.world.getBlockType(p).id();
+			if (id == Blocks.FURNACE_STONE_IDLE.id() || id == Blocks.FURNACE_STONE_ACTIVE.id()) {
+				hasFurnace = true;
+				net.minecraft.core.block.entity.TileEntity te = mob.world.getTileEntity(p);
+				if (te instanceof TileEntityFurnace furnace) {
+					if (furnace.isBurning()) furnaceReady = true;
+					ItemStack fuel = furnace.getItem(FURNACE_SLOT_FUEL);
+					if (fuel != null && fuel.stackSize > 0) furnaceReady = true;
+					ItemStack ingredient = furnace.getItem(FURNACE_SLOT_INGREDIENT);
+					ItemStack result = furnace.getItem(FURNACE_SLOT_RESULT);
+					if (result != null && result.stackSize > 0) pendingResult = true;
+					if (ingredient != null && ingredient.stackSize > 0) pendingIngredient = true;
+				}
+			} else if (id == Blocks.WORKBENCH.id()) {
+				hasWorkbench = true;
+			}
+
+			TileEntityChest chest = MobWorldAccess.getChest(mob.world, p);
+			if (chest == null) continue;
+			if (!hasRaw && chestHasSmeltable(chest)) hasRaw = true;
+			if (!hasCoalChest && chestHasItem(chest, Items.COAL)) hasCoalChest = true;
+		}
+
+		// A finished result can always be collected.
+		if (pendingResult) return true;
+
+		boolean canCook = hasWorkbench || furnaceReady || hasCoalChest;
+		if (pendingIngredient) return canCook;
+		return hasRaw && (hasFurnace || hasWorkbench) && canCook;
+	}
+
+	private static boolean chestHasItem(TileEntityChest chest, net.minecraft.core.item.Item item) {
+		for (int i = 0; i < chest.getContainerSize(); i++) {
+			ItemStack stack = chest.getItem(i);
+			if (stack != null && stack.stackSize > 0 && stack.getItem().equals(item)) return true;
+		}
+		return false;
 	}
 
 	/// The furnace output for an input stack, or null when there is no recipe.
@@ -590,7 +695,7 @@ public class CookTask implements Task {
 	private ItemStack takeSmeltableItem(TileEntityChest chest) {
 		for (int i = 0; i < chest.getContainerSize(); i++) {
 			ItemStack stack = chest.getItem(i);
-			if (stack != null && stack.stackSize > 0 && isSmeltable(stack)) {
+			if (stack != null && stack.stackSize > 0 && !isCooked(stack) && isSmeltable(stack)) {
 				ItemStack part = stack.copy();
 				part.stackSize = 1;
 				stack.stackSize--;
@@ -665,10 +770,13 @@ public class CookTask implements Task {
 
 	private boolean chestHasSmeltable(TilePosc pos) {
 		TileEntityChest chest = MobWorldAccess.getChest(mob.world, pos);
-		if (chest == null) return false;
+		return chest != null && chestHasSmeltable(chest);
+	}
+
+	private static boolean chestHasSmeltable(TileEntityChest chest) {
 		for (int i = 0; i < chest.getContainerSize(); i++) {
 			ItemStack stack = chest.getItem(i);
-			if (stack != null && stack.stackSize > 0 && isSmeltable(stack)) return true;
+			if (stack != null && stack.stackSize > 0 && !isCooked(stack) && isSmeltable(stack)) return true;
 		}
 		return false;
 	}
@@ -727,6 +835,9 @@ public class CookTask implements Task {
 	private boolean furnaceHasFuel(TilePosc pos) {
 		TileEntityFurnace furnace = getFurnace(pos);
 		if (furnace == null) return false;
+		// A furnace that is already burning is working even when the fuel slot
+		// is momentarily empty.
+		if (furnace.isBurning()) return true;
 		ItemStack fuel = furnace.getItem(FURNACE_SLOT_FUEL);
 		return fuel != null && fuel.stackSize > 0;
 	}
@@ -738,6 +849,31 @@ public class CookTask implements Task {
 			return furnace;
 		}
 		return null;
+	}
+
+	/// The closest furnace that already holds an ingredient or a result.
+	private TilePosc nearestLoadedFurnace(PoscArea.Area2D area) {
+		TilePosc best = null;
+		double bestDist = Double.MAX_VALUE;
+		double mx = mob.x, mz = mob.z;
+		for (TilePosc p : MobWorldAccess.getBlocksInArea3D(area)) {
+			if (!isFurnace(p)) continue;
+			TileEntityFurnace furnace = getFurnace(p);
+			if (furnace == null) continue;
+			ItemStack ingredient = furnace.getItem(FURNACE_SLOT_INGREDIENT);
+			ItemStack result = furnace.getItem(FURNACE_SLOT_RESULT);
+			boolean loaded = (ingredient != null && ingredient.stackSize > 0)
+				|| (result != null && result.stackSize > 0);
+			if (!loaded) continue;
+			double dx = p.x() + 0.5 - mx;
+			double dz = p.z() + 0.5 - mz;
+			double dist = dx * dx + dz * dz;
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = p;
+			}
+		}
+		return best;
 	}
 
 	/// The closest cook station: a furnace is always preferred because it can

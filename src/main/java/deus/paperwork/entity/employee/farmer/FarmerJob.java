@@ -1,6 +1,7 @@
 package deus.paperwork.entity.employee.farmer;
 
 import deus.brainless.agent.Agent;
+import deus.paperwork.entity.base.CropWorldAccess;
 import deus.paperwork.entity.base.MobWorldAccess;
 import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
@@ -179,6 +180,23 @@ public final class FarmerJob implements EmployeeJob {
 			return "no farmland in work zone";
 		}
 		return null;
+	}
+
+	/// There is work when something is ready to harvest, or when there is bare
+	/// farmland and the farmer carries seeds to sow it.
+	@Override
+	public boolean hasWorkToDo(MobEmployee mob) {
+		Optional<PoscArea.Area2D> area = mob.workArea;
+		if (area.isEmpty()) {
+			return false;
+		}
+		if (!CropWorldAccess.getHarvestableBlocksInArea(mob, area.get()).isEmpty()) {
+			return true;
+		}
+		if (mob.inventory.findStackOf(Items.SEEDS_WHEAT) == null) {
+			return false;
+		}
+		return !CropWorldAccess.getSowableBlocksInArea(mob, area.get()).isEmpty();
 	}
 
 	// ------------------------------------------------------------------ the state
