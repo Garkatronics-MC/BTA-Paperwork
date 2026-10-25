@@ -6,6 +6,7 @@ import deus.paperwork.entity.employee.chef.ChefJob;
 import deus.paperwork.entity.employee.chef.ChefJobState;
 import deus.paperwork.entity.employee.farmer.FarmerJob;
 import deus.paperwork.entity.employee.farmer.FarmerJobState;
+import deus.paperwork.entity.employee.guard.GuardJob;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.core.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
@@ -152,7 +153,7 @@ public class EmployeeStick extends Item {
 		return assigned;
 	}
 
-	/// Cicla la profesión del empleado: plain → farmer → chef → plain.
+	/// Cicla la profesión del empleado: plain → farmer → chef → guard → plain.
 	private void cycleJob(MobEmployee employee, Player player) {
 		String current = employee.jobId();
 		String next;
@@ -160,6 +161,8 @@ public class EmployeeStick extends Item {
 			next = EmployeeJobs.FARMER_ID;
 		} else if (EmployeeJobs.FARMER_ID.equals(current)) {
 			next = ChefJob.CHEF_ID;
+		} else if (ChefJob.CHEF_ID.equals(current)) {
+			next = GuardJob.GUARD_ID;
 		} else {
 			next = EmployeeJobs.PLAIN_ID;
 		}

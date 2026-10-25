@@ -3,6 +3,7 @@ package deus.paperwork;
 import deus.paperwork.registry.PaperworkBlocks;
 import deus.paperwork.entity.employee.chef.ChefJob;
 import deus.paperwork.entity.employee.farmer.FarmerJob;
+import deus.paperwork.entity.employee.guard.GuardJob;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.registry.PaperworkItems;
 import deus.paperwork.core.util.PaperworkConfig;
@@ -34,6 +35,8 @@ public class Paperwork implements ModInitializer, GameStartEntrypoint {
 		EmployeeJobs.register(new FarmerJob());
 		// The chef is a job: same registration pattern as the farmer.
 		EmployeeJobs.register(new ChefJob());
+		// The guard is the job that fights the hostile mobs around the employee.
+		EmployeeJobs.register(new GuardJob());
 		EntityInitializer.initialize("deus.paperwork");
 
 		LOGGER.info("{} Core Initialized.", MOD_ID);

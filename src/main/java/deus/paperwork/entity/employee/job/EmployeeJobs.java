@@ -20,6 +20,7 @@ public final class EmployeeJobs {
 
 	public static final String PLAIN_ID  = "plain";
 	public static final String FARMER_ID = "farmer";
+	public static final String GUARD_ID  = "guard";
 
 	private static final Map<String, EmployeeJob> REGISTRY = new LinkedHashMap<>();
 

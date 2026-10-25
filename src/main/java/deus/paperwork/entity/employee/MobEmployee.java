@@ -336,6 +336,7 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		super.sense(agent);
 		stats.tick();
 		stats.set(agent);
+		job().sense(this, agent);
 		refreshWorkAvailability();
 		agent.sense("work_available", workAvailable ? 1.0 : 0.0);
 	}

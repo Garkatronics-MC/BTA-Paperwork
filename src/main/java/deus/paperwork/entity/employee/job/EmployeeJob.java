@@ -52,6 +52,15 @@ public interface EmployeeJob {
 	/// Job specific recharge; applied AFTER the base one (food/rest).
 	void recharge(MobEmployee mob, EmployeeStats stats);
 
+	/// Job specific sensing, applied BEFORE the brain evaluates the world.
+	///
+	/// This is the hook for the jobs that have to read something the base
+	/// employee does not (a guard looking for monsters, for instance) and feed
+	/// it to the agent. It runs on the server, every tick.
+	///
+	/// The default does nothing: most jobs only need the base inputs.
+	default void sense(MobEmployee mob, Agent agent) {}
+
 	/// What the employee does with the world because of its profession. It runs
 	/// on the server, every tick.
 	///
