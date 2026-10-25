@@ -10,6 +10,7 @@ import deus.paperwork.entity.base.MobWorldAccess;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
 import deus.paperwork.entity.employee.enums.EmployeeEmotions;
 import deus.paperwork.entity.employee.enums.EmployeeStateIcons;
+import deus.paperwork.entity.employee.chef.ChefJob;
 import deus.paperwork.entity.employee.guard.GuardJob;
 import deus.paperwork.entity.employee.guard.GuardWeapon;
 import deus.paperwork.entity.employee.job.EmployeeJob;
@@ -240,6 +241,22 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		AgentResetter.reset(this);                        // the brain is rebuilt
 		this.jobState = newJob.createState();
 		this.workAvailabilityTicks = 0;                   // re-check with the new job
+		applyUniformForJob(newJob);                       // chef wears chef uniform, others default
+	}
+
+	/// Updates the uniform textures to match the job: the chef wears the chef
+	/// uniform, every other job wears the default one.
+	private void applyUniformForJob(EmployeeJob job) {
+		String texture;
+		if (job.id().equals(ChefJob.CHEF_ID)) {
+			texture = "/assets/paperwork/textures/entity/employee/uniforms/chef.png";
+		} else {
+			texture = "/assets/paperwork/textures/entity/employee/uniforms/default.png";
+		}
+		UniformPiece piece = new UniformPiece(texture);
+		uniformPieces.put(UniformShape.SHIRT, piece);
+		uniformPieces.put(UniformShape.HAT, piece);
+		uniformPieces.put(UniformShape.PANTS, piece);
 	}
 
 	/// The mutable state of the job of this employee.
