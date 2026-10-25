@@ -10,7 +10,7 @@ import org.useless.dragonfly.models.entity.StaticEntityModel;
  *  extension via new implementations without modifying existing code (Open/Closed). */
 public interface UniformPieceInterface {
 
-    /** Returns the texture reference string (e.g. "/assets/.../uniform.png"). */
+    /** Returns the texture reference string (e.g. "/assets/.../default.png"). */
     @NotNull String getTextureRef();
 
     /** Returns the model path (e.g. "geometry.paperwork.uniform.shirt"), or null if not applicable. */

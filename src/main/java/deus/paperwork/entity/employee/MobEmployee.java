@@ -189,9 +189,9 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 		}
 		applyHairStyle();
 
-		uniformPieces.put(UniformShape.SHIRT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
-		uniformPieces.put(UniformShape.HAT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
-		uniformPieces.put(UniformShape.PANTS, new UniformPiece("/assets/paperwork/textures/entity/employee/uniform.png"));
+		uniformPieces.put(UniformShape.SHIRT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniforms/default.png"));
+		uniformPieces.put(UniformShape.HAT, new UniformPiece("/assets/paperwork/textures/entity/employee/uniforms/default.png"));
+		uniformPieces.put(UniformShape.PANTS, new UniformPiece("/assets/paperwork/textures/entity/employee/uniforms/default.png"));
 	}
 
 	@Override

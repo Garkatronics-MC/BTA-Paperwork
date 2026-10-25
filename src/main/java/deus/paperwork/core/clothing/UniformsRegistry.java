@@ -9,7 +9,7 @@ public final class UniformsRegistry {
 	private UniformsRegistry() { }
 
 	public static final UniformPiece SHIRT = new UniformPiece(
-		"/assets/paperwork/textures/entity/employee/uniform.png",
+		"/assets/paperwork/textures/entity/employee/uniforms/default.png",
 		"geometry.paperwork.uniform.shirt",
 		null,
 		1,
@@ -17,7 +17,7 @@ public final class UniformsRegistry {
 	);
 
 	public static final UniformPiece PANTS = new UniformPiece(
-		"/assets/paperwork/textures/entity/employee/uniform.png",
+		"/assets/paperwork/textures/entity/employee/uniforms/default.png",
 		"geometry.paperwork.uniform.pants",
 		null,
 		1,
@@ -25,7 +25,7 @@ public final class UniformsRegistry {
 	);
 
 	public static final UniformPiece HAT = new UniformPiece(
-		"/assets/paperwork/textures/entity/employee/uniform.png",
+		"/assets/paperwork/textures/entity/employee/uniforms/default.png",
 		"geometry.paperwork.uniform.hat",
 		null,
 		1,
@@ -33,7 +33,7 @@ public final class UniformsRegistry {
 	);
 
 	public static final UniformPiece GLASSES = new UniformPiece(
-		"/assets/paperwork/textures/entity/employee/uniform.png",
+		"/assets/paperwork/textures/entity/employee/uniforms/default.png",
 		null,
 		null,
 		1,
