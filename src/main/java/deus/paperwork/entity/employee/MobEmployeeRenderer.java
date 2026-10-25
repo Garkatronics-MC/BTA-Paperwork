@@ -6,6 +6,7 @@ import deus.paperwork.core.clothing.MobRendererUniformedDecorated;
 import net.minecraft.client.render.renderer.GLRenderer;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
+import org.useless.dragonfly.models.entity.BoneTransform;
 import org.useless.dragonfly.models.entity.StaticEntityModel;
 
 import java.util.List;
@@ -82,7 +83,43 @@ public class MobEmployeeRenderer extends MobRendererUniformedDecorated<MobEmploy
 		// visible, so the toggles of the job would be erased on every frame.
 		EmployeeModelApplier.apply(model, entity.job().modelSpec(entity));
 
+		// Make the hat accessory follow the employee's head so it moves with
+		// the head instead of staying stiffly in place. The toque model has a
+		// single bone named "toque"; if the accessory has one, copy the head
+		// rotation/position from the base model onto it.
+		syncHatToHead(model, entity);
+
 		return result;
+	}
+
+	/// Copies the head rotation/position of the base employee model onto the
+	/// "toque" bone of a hat accessory, so the hat follows the head.
+	///
+	/// No-ops when the base model or the accessory have no such bone (e.g. the
+	/// farmer's bag), so this is safe for every job accessory.
+	private void syncHatToHead(StaticEntityModel hatModel, MobEmployee entity) {
+		if (hatModel == null) {
+			return;
+		}
+		BoneTransform hatBone = hatModel.getTransform("toque");
+		if (hatBone == null) {
+			return;
+		}
+		StaticEntityModel baseModel = this.getModel("main");
+		if (baseModel == null) {
+			return;
+		}
+		BoneTransform headBone = baseModel.getTransform("head");
+		if (headBone == null) {
+			return;
+		}
+
+		hatBone.rotX = headBone.rotX;
+		hatBone.rotY = headBone.rotY;
+		hatBone.rotZ = headBone.rotZ;
+		hatBone.posX = headBone.posX;
+		hatBone.posY = headBone.posY;
+		hatBone.posZ = headBone.posZ;
 	}
 
 	/// The texture of the body of an employee. Every employee wears the same
