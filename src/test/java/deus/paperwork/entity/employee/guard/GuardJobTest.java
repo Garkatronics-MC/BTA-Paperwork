@@ -3,6 +3,9 @@ package deus.paperwork.entity.employee.guard;
 import deus.paperwork.entity.employee.job.EmployeeJobState;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.entity.employee.model.EmployeeStations;
+import net.minecraft.core.item.ItemStack;
+import net.minecraft.core.item.Items;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -13,37 +16,42 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// The guard job without a mob: the id, the look and the state.
+/// El oficio guard sin un mob: el id, el aspecto, las estaciones y el estado.
 ///
-/// The fight itself needs a World and living entities, so it is covered by the
-/// game checks; here we protect the parts that must not drift.
+/// El combate real necesita un World con entidades vivas, así que aquí se
+/// protegen las partes puras que no deben derivar.
 class GuardJobTest {
 
-	/// The job is used directly (not through the registry): the registry is
-	/// filled by the mod initializer, which does not run in the tests.
+	/// El oficio se usa directamente (no por el registro): el registro lo llena
+	/// el inicializador del mod, que no corre en los tests.
 	private static final GuardJob JOB = new GuardJob();
 
+	@BeforeAll
+	static void initItems() {
+		Items.init();
+	}
+
 	@Test
-	@DisplayName("the job is the guard")
+	@DisplayName("el oficio es el guardia")
 	void idIsGuard() {
 		assertEquals("guard", JOB.id());
 		assertEquals(EmployeeJobs.GUARD_ID, JOB.id());
 	}
 
 	@Test
-	@DisplayName("the guard has no accessory yet")
+	@DisplayName("el guardia no tiene accesorio de modelo todavía")
 	void theGuardHasNoAccessory() {
 		assertTrue(JOB.accessories().isEmpty());
 	}
 
 	@Test
-	@DisplayName("the guard skeleton has no extra bones")
+	@DisplayName("el esqueleto del guardia no tiene huesos extra")
 	void modelSpecIsEmpty() {
 		assertTrue(JOB.modelSpec(null).bones().isEmpty());
 	}
 
 	@Test
-	@DisplayName("the guard uses the base stations")
+	@DisplayName("el guardia usa las estaciones base")
 	void stationsAreTheBaseOnes() {
 		EmployeeStations base = EmployeeStations.none();
 
@@ -54,25 +62,25 @@ class GuardJobTest {
 	}
 
 	@Test
-	@DisplayName("a guard without a workplace is not complaining")
+	@DisplayName("un guardia sin zona de trabajo no se queja")
 	void thereIsNoMissingStationAlert() {
 		assertTrue(JOB.missingStationAlert(null).isEmpty());
 	}
 
 	@Test
-	@DisplayName("the guard needs nothing specific in its work area")
+	@DisplayName("el guardia no necesita nada concreto en su zona de trabajo")
 	void thereIsNoMissingZoneItem() {
 		assertNull(JOB.missingZoneItems(null, null));
 	}
 
 	@Test
-	@DisplayName("a guard without a world has no work to do")
+	@DisplayName("sin mob no hay trabajo que hacer")
 	void withoutMobThereIsNoWork() {
 		assertFalse(JOB.hasWorkToDo(null));
 	}
 
 	@Test
-	@DisplayName("clearing the stations of a guard does not break")
+	@DisplayName("limpiar las estaciones de un guardia no rompe")
 	void clearingStationsDoesNothing() {
 		JOB.clearStations(null);
 		JOB.recharge(null, null);
@@ -80,17 +88,46 @@ class GuardJobTest {
 	}
 
 	@Test
-	@DisplayName("the state of a guard is a fresh employee state")
+	@DisplayName("el estado de un guardia es un estado de empleado nuevo y vacío")
 	void theStateIsFreshAndEmpty() {
 		EmployeeJobState state = JOB.createState();
 
 		assertNotNull(state);
-		assertEquals(EmployeeJobState.class, state.getClass());
+		assertTrue(state instanceof GuardJobState);
 	}
 
 	@Test
-	@DisplayName("a null target is never a hostile")
+	@DisplayName("un objetivo null nunca es hostil")
 	void aNullTargetIsNotHostile() {
 		assertFalse(GuardTargeting.isHostile(null));
+	}
+
+	// ------------------------------------------------------------------ armas
+
+	@Test
+	@DisplayName("un arco se reconoce como arco")
+	void recognizesBow() {
+		assertTrue(GuardJob.isBow(Items.TOOL_BOW));
+		assertFalse(GuardJob.isBow(Items.STICK));
+	}
+
+	@Test
+	@DisplayName("una espada con daño contra entidades se reconoce como espada")
+	void recognizesSword() {
+		ItemStack sword = new ItemStack(Items.TOOL_SWORD_IRON, 1);
+		assertTrue(GuardJob.isSword(sword));
+	}
+
+	@Test
+	@DisplayName("un arco no se confunde con espada")
+	void bowIsNotSword() {
+		ItemStack bow = new ItemStack(Items.TOOL_BOW, 1);
+		assertFalse(GuardJob.isSword(bow));
+	}
+
+	@Test
+	@DisplayName("null no es espada")
+	void nullIsNotSword() {
+		assertFalse(GuardJob.isSword(null));
 	}
 }

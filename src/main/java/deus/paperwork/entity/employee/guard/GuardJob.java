@@ -1,6 +1,7 @@
 package deus.paperwork.entity.employee.guard;
 
 import deus.brainless.agent.Agent;
+import deus.brainless.goap.GoapAction;
 import deus.paperwork.core.util.PoscArea;
 import deus.paperwork.entity.employee.MobEmployee;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
@@ -13,23 +14,25 @@ import deus.paperwork.entity.employee.model.EmployeeStats;
 import deus.paperwork.entity.employee.model.EmployeeStations;
 import deus.paperwork.entity.employee.model.EmployeeTraits;
 import net.minecraft.core.entity.Entity;
+import net.minecraft.core.item.Item;
+import net.minecraft.core.item.ItemStack;
+import net.minecraft.core.item.Items;
 
 import java.util.List;
 import java.util.Optional;
 
-/// The guard job: an employee that attacks the hostile mobs around it.
+/// El oficio guard: un empleado que persigue y ataca a los mobs hostiles.
 ///
-/// The job owns the target of the fight. Every tick it looks for the nearest
-/// {@link net.minecraft.core.entity.monster.Enemy} (or keeps the one it is
-/// already chasing) and hands it to the mob, which is where the Brainless
-/// fight tasks read it from. The {@link GuardAgent} is what turns that target
-/// into a fight: approach it, strike it, and fall back to the normal employee
-/// life when there is nothing hostile nearby.
+/// El guardia puede llevar equipada una espada o un arco (del inventario del
+/// empleado, entregada por un jugador con clic derecho). Según el arma, el
+/// tipo de objetivo (creeper obliga a distancia) y la distancia al objetivo,
+/// el cerebro alterna entre pelea cuerpo a cuerpo y pelea a distancia.
 ///
-/// The job is a singleton without state: everything mutable lives in the mob.
+/// El oficio es un singleton sin estado: todo lo mutable vive en el
+/// {@link GuardJobState} del mob.
 public final class GuardJob implements EmployeeJob {
 
-	/// Stable id of the job ("guard"), persisted in NBT and synced to the client.
+	/// Stable id del oficio ("guard"), persistido en NBT y sincronizado al cliente.
 	public static final String GUARD_ID = EmployeeJobs.GUARD_ID;
 
 	@Override
@@ -37,13 +40,13 @@ public final class GuardJob implements EmployeeJob {
 		return EmployeeJobs.GUARD_ID;
 	}
 
-	/// The guard has no accessory yet: it wears what every employee wears.
+	/// El guardia no tiene accesorio de modelo todavía: lleva el aspecto base del empleado.
 	@Override
 	public List<EmployeeAccessory> accessories() {
 		return List.of();
 	}
 
-	/// The base skeleton has no extra bones, so there is nothing to toggle.
+	/// El esqueleto base no tiene huesos extra, no hay nada que alternar.
 	@Override
 	public EmployeeModelSpec modelSpec(MobEmployee mob) {
 		return EmployeeModelSpec.empty();
@@ -54,25 +57,25 @@ public final class GuardJob implements EmployeeJob {
 		return GuardAgent.build(mob, traits, stats, stations);
 	}
 
-	/// The stations of a guard: the base ones already include workArea from the
-	/// mob; the guard job just returns them as-is.
+	/// Las estaciones de un guardia son las base: no necesita zona de trabajo.
 	@Override
 	public EmployeeStations stations(MobEmployee mob, EmployeeStations base) {
 		return base;
 	}
 
-	/// The guard does not need a work station to do its job: it fights what it
-	/// finds, wherever it is. There is nothing extra to recharge either.
+	/// El guardia no recarga nada especial: pelea donde esté.
 	@Override
 	public void recharge(MobEmployee mob, EmployeeStats stats) {}
 
-	/// Picks (or keeps) the hostile target of the guard before the brain runs.
-	///
-	/// This is the only piece of the job that needs the world, and it is also
-	/// the one that makes the fight possible: the Brainless tasks only know how
-	/// to attack {@code mob.getTarget()}, they never go looking for it.
+	/// Lee el mundo antes de que el cerebro evalúe:
+	/// <ul>
+	///   <li>Elige (o conserva) el objetivo hostil más cercano.</li>
+	///   <li>Determina el modo de combate (cuerpo a cuerpo / a distancia)
+	///       según el arma, el tipo de mob y la distancia.</li>
+	///   <li>Alimenta al agente con el modo y la distancia preferida.</li>
+	/// </ul>
 	@Override
-	public void sense(MobEmployee mob, Agent agent) {
+	public void sense(MobEmployee mob, deus.brainless.agent.Agent agent) {
 		if (mob == null || agent == null) {
 			return;
 		}
@@ -83,39 +86,116 @@ public final class GuardJob implements EmployeeJob {
 			mob.setTarget(target);
 		}
 
-		agent.sense(GuardAgent.GUARD_THREAT_INPUT, target == null ? 0.0 : 1.0);
+		GuardWeapon weapon = weaponOf(mob);
+
+		if (target != null) {
+			double dist = target.distanceTo(mob);
+			boolean ranged = weapon == GuardWeapon.BOW
+				|| GuardTargeting.isCreeper(target);
+			agent.sense(GuardAgent.GUARD_MODE_INPUT, ranged ? 1.0 : 0.0);
+			agent.sense(GuardAgent.GUARD_DIST_INPUT,
+				GuardTargeting.preferredDistance(mob, target, weapon));
+		} else {
+			agent.sense(GuardAgent.GUARD_MODE_INPUT, 0.0);
+			agent.sense(GuardAgent.GUARD_DIST_INPUT, GuardTargeting.NORMAL_KEEP_DISTANCE);
+		}
 	}
 
-	/// The fight happens through the brain; the per-tick work hook has nothing
-	/// else to do.
+	/// El ataque ocurre a través del cerebro; el hook per-tick no hace nada extra.
 	@Override
 	public void work(MobEmployee mob) {}
 
-	/// A guard is useful without a workplace: it never asks for one.
+	/// Un guardia es útil sin zona de trabajo: nunca pide una.
 	@Override
 	public Optional<EmployeeAlert> missingStationAlert(MobEmployee mob) {
 		return Optional.empty();
 	}
 
-	/// The guard owns no station of its own (the base zones are cleared by the
-	/// mob), so there is nothing extra to clear.
+	/// El guardia no tiene estación propia que limpiar (el mob limpia las zonas base).
 	@Override
 	public void clearStations(MobEmployee mob) {}
 
-	/// The guard does not need anything specific in its work area.
+	/// El guardia no necesita nada concreto en su zona de trabajo.
 	@Override
 	public String missingZoneItems(MobEmployee mob, PoscArea.Area2D workArea) {
 		return null;
 	}
 
-	/// There is work while the guard has a hostile mob to fight.
+	/// Hay trabajo mientras el guardia tenga un objetivo hostil a quien perseguir.
 	@Override
 	public boolean hasWorkToDo(MobEmployee mob) {
 		return mob != null && GuardTargeting.canKeepTarget(mob, mob.getTarget());
 	}
 
+	/// Estado nuevo y vacío para un mob con este oficio.
 	@Override
 	public EmployeeJobState createState() {
-		return new EmployeeJobState();
+		return new GuardJobState();
+	}
+
+	// ------------------------------------------------------------------ armas
+
+	/// El arma equipada del guardia, o {@code null} si el job state no es de guardia.
+	public static GuardWeapon weaponOf(MobEmployee mob) {
+		if (mob == null) {
+			return null;
+		}
+		if (mob.jobState() instanceof GuardJobState state) {
+			return state.weapon();
+		}
+		return null;
+	}
+
+	/// El slot del inventario donde está el arma equipada, o {@code -1}.
+	public static int weaponSlotOf(MobEmployee mob) {
+		if (mob == null || !(mob.jobState() instanceof GuardJobState state)) {
+			return -1;
+		}
+		return state.weaponSlot();
+	}
+
+	/// Equipa un arma al guardia, tomándola de su propio inventario.
+	///
+	/// {@code weapon} {@link GuardWeapon#NONE} desequipa cualquier arma.
+	public static void equipWeapon(MobEmployee mob, GuardWeapon weapon, int slot) {
+		if (mob == null) {
+			return;
+		}
+		if (mob.jobState() instanceof GuardJobState state) {
+			state.setWeapon(weapon, slot);
+		}
+	}
+
+	/// Devuelve el ItemStack del arma equipada, o null si no hay.
+	public static ItemStack equippedWeaponStack(MobEmployee mob) {
+		if (mob == null) {
+			return null;
+		}
+		GuardWeapon w = weaponOf(mob);
+		if (w == GuardWeapon.NONE) {
+			return null;
+		}
+		int slot = weaponSlotOf(mob);
+		if (slot < 0 || slot >= mob.inventory.getContainerSize()) {
+			return null;
+		}
+		return mob.inventory.getItem(slot);
+	}
+
+	/// Si un ítem es un arco.
+	public static boolean isBow(Item item) {
+		return item == Items.TOOL_BOW;
+	}
+
+	/// Si un ítem es una espada (cualquier herramienta con daño contra entidades).
+	public static boolean isSword(ItemStack stack) {
+		if (stack == null || stack.getItem() == null) {
+			return false;
+		}
+		Item item = stack.getItem();
+		if (isBow(item)) {
+			return false;
+		}
+		return item.getDamageVsEntity(stack, null) > 0;
 	}
 }

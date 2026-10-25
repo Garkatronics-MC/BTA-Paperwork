@@ -7,6 +7,7 @@ import deus.paperwork.entity.employee.chef.ChefJobState;
 import deus.paperwork.entity.employee.farmer.FarmerJob;
 import deus.paperwork.entity.employee.farmer.FarmerJobState;
 import deus.paperwork.entity.employee.guard.GuardJob;
+import deus.paperwork.entity.employee.guard.GuardWeapon;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
 import deus.paperwork.core.util.PoscArea;
 import deus.utils.annotations.RegisterItemModel;
@@ -16,6 +17,7 @@ import net.minecraft.core.entity.Mob;
 import net.minecraft.core.entity.player.Player;
 import net.minecraft.core.item.Item;
 import net.minecraft.core.item.ItemStack;
+import net.minecraft.core.item.Items;
 import net.minecraft.core.net.command.TextFormatting;
 import net.minecraft.core.util.helper.Side;
 import net.minecraft.core.world.World;
@@ -95,9 +97,61 @@ public class EmployeeStick extends Item {
 		}
 	}
 
+	/// Entrega un arma (espada o arco) al empleado si es un guardia.
+	/// Se consume una unidad del ítem que el jugador trae en la mano.
+	private boolean giveWeapon(MobEmployee employee, ItemStack held, Player player) {
+		if (!(employee.job() instanceof GuardJob)) {
+			return false;
+		}
+		Item item = held.getItem();
+		GuardWeapon weapon;
+		if (GuardJob.isBow(item)) {
+			weapon = GuardWeapon.BOW;
+		} else if (GuardJob.isSword(held)) {
+			weapon = GuardWeapon.SWORD;
+		} else {
+			return false;
+		}
+
+		// Busca un hueco libre en el inventario del empleado y guarda una copia.
+		int slot = -1;
+		for (int i = 0; i < employee.inventory.getContainerSize(); i++) {
+			if (employee.inventory.getItem(i) == null) {
+				slot = i;
+				break;
+			}
+		}
+		if (slot < 0) {
+			say(player, TextFormatting.Base.RED, "Employee's inventory is full.");
+			return false;
+		}
+
+		ItemStack copy = held.copy();
+		copy.stackSize = 1;
+		employee.inventory.setItem(slot, copy);
+
+		// Consume una unidad del ítem en la mano del jugador.
+		held.stackSize--;
+		if (held.stackSize <= 0) {
+			held.stackSize = 0;
+		}
+
+		employee.equipGuardWeapon(weapon, slot);
+		Brainless.LOGGER.info("[Stick] Gave {} to guard at slot {}", weapon, slot);
+		if (!employee.world.isClientSide && player != null) {
+			say(player, TextFormatting.Base.GREEN, "Guard equipped with a " + weapon + ".");
+		}
+		return true;
+	}
+
 	@Override
 	public boolean useOnEntity(@NotNull ItemStack selfStack, @NotNull Player player, @NotNull Mob mob) {
 		if (!(mob instanceof MobEmployee employee)) return false;
+
+		// 0) Entregar un arma al guardia si el jugador trae espada o arco en la mano.
+		if (selfStack != null && selfStack.stackSize > 0 && giveWeapon(employee, selfStack, player)) {
+			return true;
+		}
 
 		boolean assigned = false;
 

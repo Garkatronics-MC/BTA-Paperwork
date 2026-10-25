@@ -10,6 +10,8 @@ import deus.paperwork.entity.base.MobWorldAccess;
 import deus.paperwork.entity.employee.enums.EmployeeAlert;
 import deus.paperwork.entity.employee.enums.EmployeeEmotions;
 import deus.paperwork.entity.employee.enums.EmployeeStateIcons;
+import deus.paperwork.entity.employee.guard.GuardJob;
+import deus.paperwork.entity.employee.guard.GuardWeapon;
 import deus.paperwork.entity.employee.job.EmployeeJob;
 import deus.paperwork.entity.employee.job.EmployeeJobState;
 import deus.paperwork.entity.employee.job.EmployeeJobs;
@@ -830,13 +832,33 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 
 	// ------------------------------------------------------------------ holding
 
+	/// El arma equipada si el empleado es un guardia; null en cualquier otro caso.
+	/// El cliente lo usa para dibujar el ítem en la mano del empleado.
 	@Override
 	public @Nullable ItemStack getHeldItem() {
-		return null;
+		GuardWeapon w = GuardJob.weaponOf(this);
+		if (w == GuardWeapon.NONE) {
+			return null;
+		}
+		int slot = GuardJob.weaponSlotOf(this);
+		if (slot < 0 || slot >= inventory.getContainerSize()) {
+			return null;
+		}
+		return inventory.getItem(slot);
+	}
+
+	/// Desea un arma al guardia: la guarda en el job state y deja el ítem en el
+	/// slot indicado del inventario del empleado. El caller es responsable de
+	/// quitar el ítem del inventario del jugador que se lo entrega.
+	public void equipGuardWeapon(GuardWeapon weapon, int slot) {
+		GuardJob.equipWeapon(this, weapon, slot);
 	}
 
 	@Override
-	public void setHeldItem(@Nullable ItemStack itemStack) {}
+	public void setHeldItem(@Nullable ItemStack itemStack) {
+		// El ítem en la mano del guardia se gestiona a través del job state
+		// (equipGuardWeapon), no directamente por esta vía.
+	}
 
 	@Override
 	public boolean isLeftHanded() {
