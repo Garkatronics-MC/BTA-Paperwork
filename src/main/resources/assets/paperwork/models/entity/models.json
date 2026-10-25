@@ -13,7 +13,8 @@
     "/assets/paperwork/models/entity/employee/hairstyles/head_hair.geo.json",
     "/assets/paperwork/models/entity/employee/hairstyles/ponytail.geo.json",
 
-    "/assets/paperwork/models/entity/employee/accessories/farmer_bag.geo.json"
+    "/assets/paperwork/models/entity/employee/accessories/farmer_bag.geo.json",
+    "/assets/paperwork/models/entity/employee/accessories/toque.geo.json"
   ],
   "custom_player_models": {},
   "renderers": {
@@ -42,7 +43,9 @@
       "head_hair": "geometry.paperwork.hairstyles.head_hair",
       "hair_ponytail": "geometry.paperwork.hairstyles.ponytail",
 
-      "farmer_bag": "geometry.paperwork.accessories.farmer_bag"
+      "farmer_bag": "geometry.paperwork.accessories.farmer_bag",
+
+      "toque": "geometry.paperwork.accessories.hat.toque"
     },
 
     "paperwork:employee_farmer": {

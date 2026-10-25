@@ -27,14 +27,22 @@ import java.util.Optional;
 ///   on the workplace; the mutable state that holds the area and the last
 ///   source/destination chests; and its own alert (NO_WORKPLACE) when the
 ///   area is missing;
-/// - the presentation: no extra accessories or bones yet (the chef shares
-///   the base employee look).
+/// - the presentation: the chef's hat, an accessory layer on top of the
+///   employee.
 ///
 /// The job is a singleton without state: everything mutable lives in the mob,
 /// in its {@link ChefJobState}.
 public final class ChefJob implements EmployeeJob {
 
 	public static final String CHEF_ID = "chef";
+
+	/// The hat of the chef: the accessory layer that makes a chef look like a
+	/// chef. Its model is the one of the entity in models.json
+	/// ("toque") and the texture is the one of the hat.
+	private static final EmployeeAccessory CHEF_HAT = new EmployeeAccessory(
+		"toque",
+		"/assets/paperwork/textures/entity/employee/accessories/toque.png"
+	);
 
 	/// How close to the workplace counts as standing on the job (drives the per-tick work recharge).
 	private static final double WORK_NEAR_RANGE = 2.5;
@@ -45,10 +53,11 @@ public final class ChefJob implements EmployeeJob {
 		return CHEF_ID;
 	}
 
-	/// The chef has no accessory yet: it wears what every employee wears.
+	/// The chef wears the hat: an accessory layer on top of the employee, with
+	/// the texture of the hat.
 	@Override
 	public List<EmployeeAccessory> accessories() {
-		return List.of();
+		return List.of(CHEF_HAT);
 	}
 
 	/// The base skeleton has no extra bones, so there is nothing to toggle.
