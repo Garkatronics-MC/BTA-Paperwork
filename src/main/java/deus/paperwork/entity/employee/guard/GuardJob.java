@@ -90,8 +90,11 @@ public final class GuardJob implements EmployeeJob {
 
 		if (target != null) {
 			double dist = target.distanceTo(mob);
-			boolean ranged = weapon == GuardWeapon.BOW
-				|| GuardTargeting.isCreeper(target);
+			boolean hasBow = weapon == GuardWeapon.BOW;
+			boolean hasArrows = hasArrows(mob);
+			// Ranged solo si tiene arco Y flechas. Un creeper obliga a distancia
+			// incluso sin arco (el guardia se aleja y, si tiene arco+flechas, dispara).
+			boolean ranged = (hasBow && hasArrows) || GuardTargeting.isCreeper(target);
 			agent.sense(GuardAgent.GUARD_MODE_INPUT, ranged ? 1.0 : 0.0);
 			agent.sense(GuardAgent.GUARD_DIST_INPUT,
 				GuardTargeting.preferredDistance(mob, target, weapon));
@@ -197,5 +200,39 @@ public final class GuardJob implements EmployeeJob {
 			return false;
 		}
 		return item.getDamageVsEntity(stack, null) > 0;
+	}
+
+	// ------------------------------------------------------------------ flechas
+
+	/// Si el guardia tiene al menos una flecha en su inventario.
+	public static boolean hasArrows(MobEmployee mob) {
+		if (mob == null) {
+			return false;
+		}
+		for (int i = 0; i < mob.inventory.getContainerSize(); i++) {
+			ItemStack stack = mob.inventory.getItem(i);
+			if (stack != null && stack.stackSize > 0 && stack.getItem() == Items.AMMO_ARROW) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/// Consume una flecha del inventario del guardia. Devuelve true si pudo.
+	public static boolean consumeArrow(MobEmployee mob) {
+		if (mob == null) {
+			return false;
+		}
+		for (int i = 0; i < mob.inventory.getContainerSize(); i++) {
+			ItemStack stack = mob.inventory.getItem(i);
+			if (stack != null && stack.stackSize > 0 && stack.getItem() == Items.AMMO_ARROW) {
+				stack.stackSize--;
+				if (stack.stackSize <= 0) {
+					mob.inventory.setItem(i, null);
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 }

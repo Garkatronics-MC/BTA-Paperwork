@@ -130,4 +130,15 @@ class GuardJobTest {
 	void nullIsNotSword() {
 		assertFalse(GuardJob.isSword(null));
 	}
+
+	// ------------------------------------------------------------------ flechas
+
+	@Test
+	@DisplayName("sin flechas, hasArrows devuelve false")
+	void noArrowsMeansNoArrows() {
+		// No hay mob real en el test puro: se verifica que el método existe y
+		// no explota con null.
+		assertFalse(GuardJob.hasArrows(null));
+		assertFalse(GuardJob.consumeArrow(null));
+	}
 }

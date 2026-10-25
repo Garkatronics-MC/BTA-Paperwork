@@ -97,23 +97,17 @@ public class EmployeeStick extends Item {
 		}
 	}
 
-	/// Entrega un arma (espada o arco) al empleado si es un guardia.
+	/// Entrega un ítem al empleado si es un guardia.
+	/// - Espada o arco: se equipa como arma del guardia.
+	/// - Flechas: se guardan en el inventario para usar con el arco.
 	/// Se consume una unidad del ítem que el jugador trae en la mano.
 	private boolean giveWeapon(MobEmployee employee, ItemStack held, Player player) {
 		if (!(employee.job() instanceof GuardJob)) {
 			return false;
 		}
 		Item item = held.getItem();
-		GuardWeapon weapon;
-		if (GuardJob.isBow(item)) {
-			weapon = GuardWeapon.BOW;
-		} else if (GuardJob.isSword(held)) {
-			weapon = GuardWeapon.SWORD;
-		} else {
-			return false;
-		}
 
-		// Busca un hueco libre en el inventario del empleado y guarda una copia.
+		// Busca un hueco libre en el inventario del empleado.
 		int slot = -1;
 		for (int i = 0; i < employee.inventory.getContainerSize(); i++) {
 			if (employee.inventory.getItem(i) == null) {
@@ -136,10 +130,28 @@ public class EmployeeStick extends Item {
 			held.stackSize = 0;
 		}
 
-		employee.equipGuardWeapon(weapon, slot);
-		Brainless.LOGGER.info("[Stick] Gave {} to guard at slot {}", weapon, slot);
-		if (!employee.world.isClientSide && player != null) {
-			say(player, TextFormatting.Base.GREEN, "Guard equipped with a " + weapon + ".");
+		if (GuardJob.isBow(item)) {
+			employee.equipGuardWeapon(GuardWeapon.BOW, slot);
+			Brainless.LOGGER.info("[Stick] Gave bow to guard at slot {}", slot);
+			if (!employee.world.isClientSide && player != null) {
+				say(player, TextFormatting.Base.GREEN, "Guard equipped with a bow.");
+			}
+		} else if (GuardJob.isSword(held)) {
+			employee.equipGuardWeapon(GuardWeapon.SWORD, slot);
+			Brainless.LOGGER.info("[Stick] Gave sword to guard at slot {}", slot);
+			if (!employee.world.isClientSide && player != null) {
+				say(player, TextFormatting.Base.GREEN, "Guard equipped with a sword.");
+			}
+		} else if (item == Items.AMMO_ARROW) {
+			Brainless.LOGGER.info("[Stick] Gave arrow to guard at slot {}", slot);
+			if (!employee.world.isClientSide && player != null) {
+				say(player, TextFormatting.Base.GREEN, "Guard got an arrow.");
+			}
+		} else {
+			// No es un ítem que el guardia use: lo quita del inventario.
+			employee.inventory.setItem(slot, null);
+			say(player, TextFormatting.Base.RED, "The guard cannot use that.");
+			return false;
 		}
 		return true;
 	}

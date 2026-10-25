@@ -51,9 +51,14 @@ public class GuardAttack implements Task {
 
 		GuardWeapon weapon = weaponOf(mob);
 
-		// Con arco y dentro del alcance de disparo: ataque a distancia.
+		// Con arco, flechas y dentro del alcance de disparo: ataque a distancia.
 		if (weapon == GuardWeapon.BOW && distance <= GuardTargeting.BOW_REACH) {
-			shoot(mob, target);
+			if (!GuardJob.hasArrows((MobEmployee) mob)) {
+				// Sin flechas: no puede disparar, deja que el approach ajuste la
+				// distancia o que se acerque a pelear cuerpo a cuerpo si tiene espada.
+				return TaskStatus.RUNNING;
+			}
+			shoot((MobEmployee) mob, target);
 			Brainless.LOGGER.debug("[guard] bow shot at {} dist={}", target.getClass().getSimpleName(), distance);
 			return TaskStatus.SUCCESS;
 		}
@@ -75,13 +80,11 @@ public class GuardAttack implements Task {
 	/// Dispara el arco: aplica daño directo al objetivo (BTA 8.0.1 no tiene
 	/// entidad de flecha separada, por tanto el impacto se resuelve como daño
 	/// directo al alcance del arco).
-	private static void shoot(AgentMob mob, Entity target) {
-		if (mob instanceof MobEmployee employee) {
-			int damage = bowDamage(employee);
-			target.hurt(employee, damage, DamageType.COMBAT);
-		} else {
-			target.hurt(mob, 4, DamageType.COMBAT);
-		}
+	private static void shoot(MobEmployee mob, Entity target) {
+		// Consume una flecha del inventario antes de disparar.
+		GuardJob.consumeArrow(mob);
+		int damage = bowDamage(mob);
+		target.hurt(mob, damage, DamageType.COMBAT);
 	}
 
 	private static int bowDamage(MobEmployee employee) {
