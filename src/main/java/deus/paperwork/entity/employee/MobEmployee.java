@@ -245,13 +245,14 @@ public class MobEmployee extends AgentMob implements IItemHolding, ICustomizable
 	}
 
 	/// Updates the uniform textures to match the job: the chef wears the chef
-	/// uniform, every other job wears the default one.
+	/// uniform, the farmer wears the farmer uniform, every other job wears
+	/// the default one.
 	private void applyUniformForJob(EmployeeJob job) {
 		String texture;
-		if (job.id().equals(ChefJob.CHEF_ID)) {
-			texture = "/assets/paperwork/textures/entity/employee/uniforms/chef.png";
-		} else {
-			texture = "/assets/paperwork/textures/entity/employee/uniforms/default.png";
+		switch (job.id()) {
+			case ChefJob.CHEF_ID -> texture = "/assets/paperwork/textures/entity/employee/uniforms/chef.png";
+			case EmployeeJobs.FARMER_ID -> texture = "/assets/paperwork/textures/entity/employee/uniforms/farmer.png";
+			default -> texture = "/assets/paperwork/textures/entity/employee/uniforms/default.png";
 		}
 		UniformPiece piece = new UniformPiece(texture);
 		uniformPieces.put(UniformShape.SHIRT, piece);
